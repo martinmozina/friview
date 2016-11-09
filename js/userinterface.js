@@ -5707,6 +5707,19 @@ function refreshMap(){
     var mapXAttr = normalizedDataWithNodes[xIndex]; 
     var mapYAttr = normalizedDataWithNodes[yIndex]; 
     
+	var xName = dropX.options[dropX.selectedIndex].innerText;
+	var yName = dropY.options[dropY.selectedIndex].innerText;
+	
+	var criteriaNames = window.model.getCriteriaNamesToList();
+	
+	if(criteriaNames.indexOf(xName) != -1){
+		mapXAttr = normalizedData[xIndex];
+	}
+	
+	if(criteriaNames.indexOf(yName) != -1){
+		mapYAttr = normalizedData[yIndex];
+	}	
+	
     console.log("refreshMap: " + mapXAttr.type);
     console.log("refreshMap: " + mapYAttr.type);
     
