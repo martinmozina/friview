@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">	
+
+        <title>Diploma</title>
+
+        <link href="css/style.css" type="text/css" rel="stylesheet">
+        
+        <link rel="stylesheet" href="js_lib/jqwidgets/styles/jqx.base.css" type="text/css" />
+        <!-- <link rel="stylesheet" href="css_lib/jsxgraph.css" type="text/css" /> 
+        <script type="text/javascript" src="ib/jsxgraphcore.js"></script> -->
+
+        <link rel="stylesheet" href="css_lib/jquery-ui.css" type="text/css" />
+
+        <!-- load the d3.js library -->	
+        <script src="js_lib/d3.min.js"></script>
+        
+        <!--shranjevanje / branje datotek-->
+        <script src="js_lib/Blob.js"></script>
+        <script src="js_lib/FileSaver.js"></script>
+        
+        <!--jQery library-->
+        <script src="js_lib/jquery-1.11.2.min.js"></script>
+        
+        <!-- Importi glede jqwidgets.... -->
+        <link rel="stylesheet" href="js_lib/jqwidgets/styles/jqx.base.css" type="text/css" />
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxcore.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxdata.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxbuttons.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxscrollbar.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxmenu.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxcheckbox.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxlistbox.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxdropdownlist.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.sort.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.pager.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.selection.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.edit.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.columnsresize.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxgrid.columnsreorder.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxwindow.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxdraw.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxchart.core.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxdatetimeinput.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxcalendar.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/globalization/globalize.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxdocking.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxpanel.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxsplitter.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxcombobox.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxinput.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxtoolbar.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxtooltip.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxtabs.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxdatatable.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxslider.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxexpander.js"></script> 
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxvalidator.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/jqxcheckbox.js"></script>
+        <script type="text/javascript" src="js_lib/jqwidgets/globalization/globalize.js"></script> 
+
+        <script type="text/javascript" src="js_lib/highcharts.js"></script>
+        <script type="text/javascript" src="js_lib/draggable-point-plugin.js"></script>
+
+        <script type="text/javascript" src="js_lib/jquery-ui.min.js"></script>
+
+        <!-- importanje glede excela -->
+        <script type="text/javascript" src="js_lib/xls.js"></script>
+        <script type="text/javascript" src="js_lib/xlsx.core.min.js"></script>
+        <script type="text/javascript" src="js_lib/jszip.js"></script>
+        
+        <!-- importanje JSLPSOlver-ja. -->
+        <script type="text/javascript" src="js_lib/js_lp_solver/solver.js"></script>
+        
+        <!-- importanje algebra.js-ja. -->
+        <script type="text/javascript" src="js_lib/algebra-0.2.5.min.js"></script>
+
+        <!--JSXGraph -->
+
+        <script src="js/opensave.js"></script>
+        <script src="js/userinterface.js"></script>  
+        <script src="js/utils.js"></script>
+        
+        <script type="text/javascript">
+        </script>
+        
+		<style>
+			.red {
+				background-color:red;
+			}
+			
+			.green {
+				background-color:green;
+			}
+			
+			.yellow {
+				background-color:yellow;
+			}
+		</style>
+    </head>
+
+    <!-- Tale zadeva:  onkeydown="return (event.keyCode!=13)" poskrbi da se ob pritisku entra ne zgodi posteback 
+            in se stran ne refresha, kar bi bilo zelo moteče... -->
+    <body onresize="krozniMenu.zapriMenu();" onkeydown="return (event.keyCode!=13)">
+        <div id='headerDiv'>
+            <h1 align="center">Gradnja odločitvenih dreves</h1>
+            <h3 align="center">branch: DevBranchFin1</h3>
+        </div>
+        <div id="frame">
+            <div id="toolbar" style="padding: 4px; border: 1px solid silver; border-radius: 3px"></div>  
+            
+            <div id='tabsContent' style="margin-top:6px;">
+                <ul style='margin-left: 3px;'>
+                    <li>Value tree</li>
+                    <li>Variants</li>
+                    <li>Analyse</li>
+                </ul>
+                <div id="tabTree">
+                    <!-- <div id="tabTree" class="tab" onscroll="refreshCircMenu();">
+                
+                    </div> -->
+                    <svg id='svgTree'>
+                    </svg>
+                </div>
+
+                <!--Div za telo taba Variants -->
+                <div id='tabVariants'>
+                    <div id="gridVariants"> </div>
+                </div>
+                
+                <!--Div za telo taba Analyse -->
+                <div id='tabAnalyse'>
+                    <div id='jqxWidget'>
+                        <div id="docking">
+                            <div>
+                                <div id="window1" style="height: 600px;">
+                                    <div>
+                                        Spider chart
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                        
+                                        <div id="spiderVariants" style="width: 640px; height: 480px"></div>
+                                        <div id="spiderAttributes" style="width: 380px; height: 300px"></div>      
+
+                                    </div>
+                                </div>
+                                <div id="window2" style="height: 600px; width: 500px">
+                                    <div>
+                                        Map
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                        <div id="mapVariants" style="width: 640px; height: 480px"></div>
+                                        <div id="mapAttributes" style="width: 380px; height: 300px"></div>      
+                                    </div>
+                                </div>
+                            <!--</div>
+                            <div>-->
+                                <div id="window3" style="height: 600px">
+                                    <div>
+                                        Contribution
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                        <div id="contributionVariants" style="width: 640px; height: 480px"></div>
+                                    </div>
+                                </div>
+                                <div id="window4" style="height: 350px;">
+                                    <div>
+                                        Manjvredne variante
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="lessValuableVariants" style="width: 380px; height: 300px"></div>
+                                    </div>
+                                </div>
+                                <div id="window5" style="height: 600px;">
+                                    <div>
+                                        Sensitivity
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="sensitivityVariants" style="width: 640px; height: 480px"></div>
+                                       <div id="sensitivityAttributes" style="width: 380px; height: 300px"></div>   
+                                    </div>
+                                </div>
+                                <!--<div id="window6" style="height: 350px;">
+                                    <div>
+                                        Maximin
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="maximinVariants" style="width: 380px; height: 300px"></div>
+                                    </div>
+                                </div>
+                                <div id="window7" style="height: 350px;">
+                                    <div>
+                                        Minimax/Maximax
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="minimaxVariants" style="width: 380px; height: 300px"></div>
+                                    </div>
+                                </div>
+                                <div id="window8" style="height: 350px;">
+                                    <div>
+                                        Pričakovana vrednost (Expected value)
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="estimatedValueVariants" style="width: 380px; height: 300px"></div>
+                                    </div>
+                                </div>-->
+                                <div id="window9" style="height: 600px;">
+                                    <div>
+                                        Kaj če...
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="increaseDecreaseVariants" style="width: 640px; height: 480px"></div>
+                                    </div>
+                                </div>
+								<div id="window10" style="height: 600px;">
+                                    <div>
+                                        Normalizirani podatki
+                                    </div>
+                                    <div style="overflow: hidden;">
+                                       <div id="normalizedGrid" style="width: 790px; height: 480px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>      
+        </div>
+
+        <!--Div je uporabljen za popup Criteria create... (pri kreiranju kriterijev) -->
+        <div id='dialogCriteriaDetails'>
+            <div id='headerCritDet'>
+                <span style='margin-left:150px'>Criterion details</span>
+            </div>
+            <div id='contentCritDet' style='padding-top:20px; background-color:#EEF0F1;'>
+                <div id='bodyCritDet' style='margin-left:auto; margin-right:auto; width:260px;'>
+                    <form id='formCriteriaDetails'>
+                        <div class='criteriaSpecification'>
+                            <label>Name: </label>
+                            <div>
+                               <input id="tfName" type="text" maxlength="100" style="width: 250px"/>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Scale type: </label>
+                            <div>
+                                <select id='selScaleType' style="width:180px;">
+                                  <option value="relative">Relative</option>
+                                  <option value="fixed">Fixed</option>
+                                  <!-- <option value="Identity">Identity</option> -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Value function type: </label>
+                            <div>
+                                <select id='selValFuncType' style="width:180px;">
+                                </select>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Min: </label>
+                            <div>
+                                <input id="tfMin" type="text" style="width: 50px"/>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Max: </label>
+                            <div>
+                                <input id="tfMax" type="text" style="width: 50px"/>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Inverse scale: </label>
+                            <div>
+                                <input id="cbInverse" type="checkbox" value="inverse checkbox"/>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Description: </label>
+                            <div>
+                                <textarea id="taDescription" style="width: 250px;height:70px; resize: none;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="footerCritDet" style='float:right;margin-right:73px;margin-top:25px;'>
+                        <input id='btnCloseCritDet' type='button' value='Close'>
+                        <input id='btnSaveCritDet' type='button' value='Save'>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Div za popup kreiranja noda. (vozlišča tipa node) --> 
+        <div id='dialogNodeDetails'>
+            <div id='headerCritDet'>
+                <span style='margin-left:150px'>Node details</span>
+            </div>
+            <div id='contentCritDet' style='padding-top:20px; background-color:#EEF0F1;'>
+                <form ID='formNodeDetails'>
+                    <div id='bodyCritDet' style='margin-left:auto; margin-right:auto; width:260px;'>
+                        <div class='criteriaSpecification'>
+                            <label>Name: </label>
+                            <div>
+                               <input id="tfNameNode" type="text" maxlength="100" style="width: 250px"/>
+                            </div>
+                        </div>
+                        <div class='criteriaSpecification'>
+                            <label>Description: </label>
+                            <div>
+                                <textarea id="taDescriptionNode" style="width: 250px;height:70px; resize: none;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footerCritDet" style='float:right;margin-right:73px;margin-top:25px;'>
+                        <input id='btnCloseNodeCreate' type='button' value='Close'>
+                        <input id='btnSaveNodeCreate' type='button' value='Save'>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Div za popup urejanje value function (piecewise) -->
+        <div id='dialogValFuncPiecewise'>
+            <div id='headerCritDet'>
+                <span style='margin-left:200px'>Piecewise value function.</span>
+            </div>
+            <div id='contentValFuncPiecewise' style='background-color:#EEF0F1;'>
+                <div id='dialogValFuncPiecewiseBody' style='padding-top:20px;'>
+                    <div id='graphValFuncPiecewise' style="width:400px;height:400px;border:solid 1px;border-color:black;margin-left:auto;margin-right:auto;background-color:#FFFFFF;">
+
+                    </div>
+                    <div style='display:block;width:400px;height:50px;padding-top:7px;margin-left:auto;margin-right:auto;'>
+                        <label style='float:left;'>Number of points: </label>
+                        <div style='float:left; margin-left:5px;'>
+                            <select id='selNumOfPointsPiecewise' style="width:80px;">
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                            </select>
+                        </div>
+                        <div style="float:right;">
+                            <input id='btnResetPiecewiseGraph' type='button' value='Reset graph'/>
+                        </div>
+                    </div>
+                    <div class="footerValFuncPiecewise" style='width:400px;margin-left:auto;margin-right:auto;padding-top:10px;'>
+                        <input id='btnSavePiecewise' type='button' value='Save' style='float:right;'>
+                        <input id='btnClosePiecewise' type='button' value='Close' style='float:right;margin-right:7px;'>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Div za popup urejanje value function (piecewise) -->
+        <div id='dialogValFuncLinear'>
+            <div id='headerValFuncLinear'>
+                <span style='margin-left:200px'>Linear value function.</span>
+            </div>
+            <div id='contentValFuncLinear' style='background-color:#EEF0F1;'>
+                <div id='dialogValFuncLinearBody' style='padding-top:20px;'>
+                    <div id='graphValFuncLinear' style="width:400px;height:400px;border:solid 1px;border-color:black;margin-left:auto;margin-right:auto;background-color:#FFFFFF;">
+
+                    </div>
+                    <div class="footerValFuncLinear" style='width:400px;margin-left:auto;margin-right:auto;padding-top:10px;'>
+                        <input id='btnCloseLinear' type='button' value='Close' style='float:right;margin-right:7px;'>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Div za popup urejanje value function (discrete) -->
+        <div id='dialogValFuncDiscrete'>
+            <div id='headerCritDet'>
+                <span style='margin-left:140px'>Discrete value function.</span>
+            </div>
+            <div id='contentValFuncDiscrete' style='background-color:#EEF0F1;'>
+                <div id='dialogValFuncDiscreteBody' style='padding-top:20px;'>
+                    <div id='addCategory'>
+                        <form id="formValFuncDiscrete" onsubmit='return false;'>
+                            <table>
+                                <tr>
+                                    <td><span style='display:block;float:left;'>Category name:</span></td>
+                                    <td><div id="cobCategoryName"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>&nbsp</td>
+                                    <td><input id='btnAddCategory' type='button' value='Add category' style='float:right;margin-top:10px;'></td>
+                                </tr>
+                            </table>
+                        </form>
+                    </div>
+
+                    <div id='categoryAboveButtons'>
+                        <div id='btnSortCategoryAsc'><img src='./images/imgSortAsc16.png'/></div>
+                        <div id='btnSortCategoryDesc'><img src='./images/imgSortDesc16.png'/></div>
+                        <div id='btnAddAllExistingCategories'><img src='./images/imgDropDown16.png'/></div>
+                        <div id='btnClearAllCategories'><img src='./images/imgClear16.png'/></div>
+                    </div>
+
+
+                    <div id='categorySlidersPanel'> 
+                        <!-- <table id='tableCategorySliders' style='display:block;width:90%;margin:auto;margin-top:5px;line-height:20px'>
+                       <tr>
+                                <td>Category</td>
+                                <td><div id='slider' style='margin-left:15px;margin-top:2px;width:150px;'></div></td>
+                            </tr>
+                        </table> -->
+                        <div id='tableCategorySliders'>
+
+                        </div>
+
+                    </div>
+
+                    <input id='btnPopUpMACBETH' type='button' value='MACBETH' style='margin-top:10px;margin-left:10px;'>
+
+                    <div class="footerValFuncDiscrete" style='width:450px;margin:auto;margin-top:30px;'>
+                        <input id='btnSaveDiscrete' type='button' value='Save' style='float:right;'>
+                        <input id='btnCloseDiscrete' type='button' value='Close' style='float:right;margin-right:7px;'>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Div za popup uteži -->
+        <div id='dialogWeight'>
+            <div id='headerCritDet'>
+                <span style='margin-left:150px'>???Wieghts???</span>
+            </div>
+            <div id='contentValFuncPiecewise' style='background-color:#EEF0F1;'>
+                <div id='dialogWeightsBody' style='padding-top:20px;'>
+                    <div id='weights'>
+                        <div id='weightsPanel' style='margin-right:auto;margin-left:auto;'>
+                            <div id='weightsPanelLayoutDiv'>
+                                <!-- <div class='weightsPanelContent'>
+                                    <div class='weightPanelName'>
+                                        <span>Cena (Cena)</span>
+                                    </div>
+                                    <div class='weightPanelSwing'>
+                                        <table class='weightPanelSwingTable'>
+                                            <tr>
+                                                <td>
+                                                    Min
+                                                </td>
+                                                <td>
+                                                    &nbsp
+                                                </td>
+                                                <td>
+                                                    Max
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td align='center'>
+                                                    0
+                                                </td>
+                                                <td>
+                                                    -
+                                                </td>
+                                                <td>
+                                                    100
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class='weightPanelWeight'>
+                                        68
+                                    </div>
+                                    <div class='weightPanelSliderHolder'>
+                                        <div id='slider' class='weightPanelSlider'></div>
+                                    </div>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footerValFuncPiecewise" style='width:400px;margin-left:auto;margin-right:auto;padding-top:45px;'>
+                        <input id='btnSaveWeight' type='button' value='Update' style='float:right;'>
+                        <input id='btnCloseWeight' type='button' value='Close' style='float:right;margin-right:7px;'>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Div za dialog z sporočilom in yes/no akcijo -->
+        <div id='dialogYesNoMessage'>
+            <div class="dialogYesNoHeader"> 
+                <span>
+                </span>
+            </div>
+            <div class="dialogYesNoContent" style='background-color:#EEF0F1;'>
+                <div class='dialogYesNoBody' style='margin-top:25px;margin-left:30px;'>
+                    <img src='images/iconWarning.png' style='display:block; float:left;'>
+                    <span style='display:block; margin-bottom:30px; padding-top:4px;'>Kriterij z podanim imenom že obstaja.</span>
+                </div>
+                <div class='dialogYesNoFooter' style='margin-top:35px; margin-right:25px;'>
+                    <input id='btnYesNoMessageYes' type='button' value='OK' style='float:right; margin-left:20px;'></input>
+                    <input id='btnYesNoMessageNo' type='button' value='No' style='float:right; margin-left:20px;'></input>
+                </div>
+            </div>
+        </div>
+
+        <!-- Div za MACBETH dialog -->
+        <div id='dialogMACBETH'>
+            <div class="dialogMACBETHHeader"> 
+                <span>
+                    Macbeth difference
+                </span>
+            </div>
+            <div class="dialogMACBETHContent" style='background-color:#EEF0F1;'>
+                
+                <div class='dialogMACBETHBody' style='margin-top:25px;margin-left:auto;'>
+                    <table class='MCGridTable'>
+                        <tr>
+                            <td>
+                                <div class='MCGridParentDiv'>
+                                    <div id='MACBETHgrid'>
+                                    </div> 
+                                    <div id='ddlSwapCategories' style='overflow: auto;'></div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input id='btnDeleteMacbethData' type='image' src='./images/imgClear16.png'></input>
+                            </td>
+                        </tr>
+                    </table>
+                    <div id='MACDifferenceExpander'>
+                        <!-- <div id='MacExpanderHeader'>
+                            Differences
+                        </div> -->
+                        <div id='MacExpanderBody'> 
+                            <div id='MCSliderHeader' class='CenterDiv' style='margin-bottom:20px;'>
+                                <span ID='MCFirstOption' style='font-weight:bold'></span>
+                                <span> - </span>
+                                <span ID='MCSecondOption' style='font-weight:bold'></span>
+                            </div>
+                            <div id='sliderMacRelation' class='CenterDiv'>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class='dialogMACBETHFooter' style='margin-top:35px; margin-right:10px;'>
+                    <input id='btnDialogMACBETHCancle' type='button' value='Cancle' style='float:right;'></input>
+                    <input id='btnDialogMACBETHOK' type='button' value='OK' style='float:right; margin-right:7px;'></input>
+                </div>
+            </div>
+        </div>
+
+        <div id='macbethIntervalTooltip'>
+            <div id='toolTipIntervalContent'>
+                <span id='fromValue' style='font-weight:bold;'></span><span> - </span><span id='toValue' style='font-weight:bold;'>
+            </div>
+        </div>
+    </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

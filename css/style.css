@@ -1,0 +1,336 @@
+#headerDiv{
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: #e8e8e8;
+    border-radius: 4px;
+}
+
+.node {
+    cursor: pointer;
+}
+
+.node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 5px;
+}
+
+.node text {
+    font: 12px sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 2px;
+}
+
+#frame{
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+h1{
+    width: 100%;
+}
+
+svg{
+    display: block;
+    width: 1500px;
+    height: 100%;
+}
+
+.img-save{
+    display: block;
+    width: 24px;
+    height: 24px;
+    background-image: url("../images/imgSave24.png");   
+}
+.img-open{
+    background-image: url("../images/imgOpen16.png");   
+}
+
+.img-undo{
+    background-image: url("../images/imgUndo16.png");
+}
+
+.img-redo{
+    background-image: url("../images/imgRedo16.png");
+}
+
+.tab{
+    width: 100%;
+    height: 700px;
+    border: 1px solid silver;
+    border-top: 0px;
+    display: none;
+    padding: 10px;
+    overflow: auto;
+}
+
+#gridVariants
+{
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 50px;
+}
+
+.variantConflictCell{
+    background-color: #ffccbb !important;
+}
+
+.circMenuItem{
+    width: 32px;
+    height: 32px;
+    opacity: 0.5;
+}
+.circMenuItem:hover{
+    /*background-color: blue !important;*/
+    opacity: 1 !important;
+}
+.toolbarButton{
+    display: block;
+    height: 16px;
+    padding: 2px;
+    margin: 1px;
+    border: 1px solid none;
+}
+.toolbarButton:hover{
+    border: 1px solid #CCC;
+    height: 16px;
+    padding: 1px;
+    margin: 1px;
+    transition: 0.6s ease-out;
+}
+
+.criteriaSpecification{
+    margin-top: 5px;
+}
+
+.weightsPanelContent{
+    width: 90px;
+    height: 100%;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    /*box-shadow: 0px 0px 0px 2px rgba(0,0,0,0.3);*/
+    /*padding: 2px;*/
+    /*margin-left: 2px;*/
+    /*margin-right: 2px;*/
+    /*margin-top: 2px;*/
+    float: left;
+}
+#weightsPanelLayoutDiv{
+    height: calc(100% - 4px);
+}
+.weightPanelName{
+    text-align: center;
+    margin-top: 5px;
+    padding-left: 9px;
+}
+.weightedNodeText{
+    text-align: left;
+}
+.weightedCriteriaText{
+    text-align: left;
+}
+.weightPanelSwing{
+    /*background-color: #00f;*/
+    align-content: center;
+    margin-bottom: 15px;
+}
+.weightPanelSwingTable{
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px; 
+    display: block;
+    /*box-shadow: 0px 2px 0px 0px rgba(0, 0, 0, 0.3);*/
+    border-bottom: 2px solid #B3B3B3;
+    padding-bottom: 10px;
+    border-top: 2px solid #B3B3B3;
+    padding-top: 10px;
+}
+.weightPanelWeight{
+    /*background-color: #0FF;*/
+    text-align: center;
+    margin: 0;
+    font-family: times, Times New Roman, times-roman, georgia, serif;
+    color: #4682B4;
+    /*color: #000;*/
+    font-size: 20px;
+    line-height: 44px;
+    letter-spacing: -2px;
+    font-weight: bold;
+}
+.weightPanelSliderHolder{
+
+}
+.weightPanelSlider{
+    margin-left: auto;
+    margin-right: auto;
+}
+.weightSlider{
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: 10px;
+}
+.ui-slider-range{
+    background-color: #F00 !important;
+}
+.jqx-slider-rangebar{
+    background-color: #4682B4 !important;
+}
+.jqx-slider-track{
+    background-color: #C0C0C0 !important;
+}
+
+
+
+#addCategory{
+    width:450px;
+    margin:auto;
+}
+#tableCategorySliders{
+    width: 100%;
+    display:table;
+}
+#categorySlidersPanel{
+    overflow-y: scroll;
+    width: 450px;
+    height: 200px;
+    background-color: #FFF;
+    border: 1px solid #C7C7C7;
+}
+.categoryDiv{
+    display:table-row;
+    width:auto;
+    max-height: 800px;
+}
+.categoryDiv:hover .celle { 
+    background-color: #E8E8E8;
+}
+.categoryName{
+    width: 100px;
+    word-wrap: break-word;
+    padding-right: 7px;
+}
+.categorySliders{
+    margin-right: 0px;
+}
+.categoryValueText{
+    width:45px;
+    text-align: center;
+    margin: 0;
+    margin-left: 10px;
+    padding-right: 10px;
+    font-family: times, Times New Roman, times-roman, georgia, serif;
+    color: #4682B4;
+    font-size: 20px;
+    line-height: 44px;
+    letter-spacing: -2px;
+    font-weight: bold;
+}
+.celle{
+    display: table-cell;
+    vertical-align: middle;
+}
+.categorySliderDiv{
+    width: 260px;
+}
+.categorySliderDivUnusedInMacbeth{
+    background-color: #ffccbb;
+}
+.categoryNameText{
+    margin-left: 10px;
+    width: 100%;
+}
+.categoryImageDiv{
+    margin-top: 3px;
+    margin-left: 5px;   
+}
+
+
+
+#btnSortCategoryAsc{
+    float: left;
+    margin-left: 0px;
+}
+#btnSortCategoryDesc{
+    float: left;
+    margin-left: 5px;
+}
+#btnAddAllExistingCategories{
+    float: left;
+    margin-left: 10px;
+}
+#btnClearAllCategories{
+    float: right;
+}
+#categoryAboveButtons{
+    margin-top: 10px;
+    height: 20px;
+    margin-bottom: 5px;
+    margin-left: auto;
+    margin-right: auto;
+    width:450px;
+}
+#categorySlidersPanel{
+    margin:auto;
+    margin-top:5px;
+}
+
+
+.linkcl{
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 2px;
+}
+
+#MACDifferenceExpander{
+    margin-top: 25px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+#macbethIntervalTooltip{
+    display: block;
+    position: absolute;
+    z-index: 100000000;
+    height: 23px;
+    width: 110px;
+    background-color: #e8e8e8;
+    border: solid 1px #c5c5c5;
+    border-radius: 10px;
+    top:100px;
+    left:100px;
+
+    text-align: center;
+}
+
+
+/* SPLOŠO - RAZREDI */
+.CenterDiv{
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+/* MACBETH GRID STYLES */
+
+.MCFirsColumnCellDiv{
+    text-align:center;
+}
+
+.MCGridTable{
+    margin:auto !important;
+}
+
+.MCCell{
+    text-align: center;
+}
+
+.MCUnderDiagonalCell{
+    background-color: rgba(220,220,220, 0.43) !important;
+}
