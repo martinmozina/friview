@@ -779,10 +779,19 @@ function normirajUtezi(){
 				for(var k = 0; k < Object.keys(window.model.getVariants()).length; k++){
 					var ndwnVarName = "norm_var"+k;
 					console.log("ndwnNode.normWeight " + ndwnNode.normWeight);
-					if(ndwnParent[ndwnVarName] == null){
+					/*if(ndwnParent[ndwnVarName] == null){
 						ndwnParent[ndwnVarName] = getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) * (parseFloat(ndwnNode.normWeight) / 100);
 					}else{
 						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] + (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) * (parseFloat(ndwnNode.normWeight) / 100));
+					}*/
+					
+					if(ndwnParent[ndwnVarName] == null){
+						ndwnParent[ndwnVarName] = (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) 
+							* (parseFloat(ndwnNode.weight))) / ndwnParent.weight;
+					}else{
+						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] 
+							+ ((getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) 
+							   * (parseFloat(ndwnNode.weight))) / ndwnParent.weight);
 					}
 					
 				}		
@@ -790,16 +799,32 @@ function normirajUtezi(){
 			}else{//gre za node
 				for(var k = 0; k < Object.keys(window.model.getVariants()).length; k++){
 					var ndwnVarName = "norm_var"+k;
-					
+					//1.
 					/*if(ndwnParent[ndwnVarName] == null){
 						ndwnParent[ndwnVarName] = ndwnNode[ndwnVarName];
 					}else{
 						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] + ndwnNode[ndwnVarName];
 					}*/
-					if(ndwnParent[ndwnVarName] == null){
+					//2.
+					/*if(ndwnParent[ndwnVarName] == null){
 						ndwnParent[ndwnVarName] = getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) * (parseFloat(ndwnNode.normWeight) / 100);
 					}else{
 						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] + (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) * (parseFloat(ndwnNode.normWeight) / 100));
+					}*/
+					//3.
+					/*if(ndwnParent[ndwnVarName] == null){
+						ndwnParent[ndwnVarName] = (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) 
+							* (parseFloat(ndwnNode.weight))) / ndwnParent.weight;
+					}else{
+						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] 
+							+ ((getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) 
+							   * (parseFloat(ndwnNode.weight))) / ndwnParent.weight);
+					}*/
+					//4.
+					if(ndwnParent[ndwnVarName] == null){
+						ndwnParent[ndwnVarName] = (ndwnNode[ndwnVarName] * ndwnNode.weight) / ndwnParent.weight;
+					}else{
+						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] +	((ndwnNode[ndwnVarName] * ndwnNode.weight) / ndwnParent.weight);	
 					}
 					
 				}	

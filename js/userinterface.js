@@ -5930,7 +5930,7 @@ function refreshSensitivity(){
 		}
 		
 		var attribute = model.getNode(attributeName);
-		attrWeight = attribute.normWeight / 100;
+		attrWeight = attribute.weight / 100;
 		for(var i = 0; i < Object.keys(variants).length; i++){
 			var vreVar = "norm_var"+ i;
 			seznamVariantVre.push(attribute[vreVar]);
