@@ -2,16 +2,17 @@
 //////      TOP MODEL
 //////////////////////////////////
 
+
 function Model(){
 
     this._criteria = {};
 
     // Te bi verjetno lahko nekako izparsal vn
-    this._treeProps = ['treeData', 'name', 'cid', 'children', 'parent', 'depth', 'type', 'description', 'inverseScale', 'maxValue', 'minValue', 'scaleType', 'valFuncType', 'valueFunction', 'points', 'weight', 'MACBETHData', 'MACBETHOptions', 'NENE'];
+    this._treeProps = ['treeData', 'name', 'cid', 'children', 'parent', 'depth', 'type', 'description', 'inverseScale', 'maxValue', 'minValue', 'scaleType', 'valFuncType', 
+    'valueFunction', 'points', 'weight', 'MACBETHData', 'MACBETHOptions', 'NENE', 'finalNormalizedWeight', 'levelNormalizedWeight', 'userWeight'];
 
     this._variants = {};
     this._varIDGen = 0;
-
 
     /// KRITERIJI oz. VOZLISCA:
 
@@ -64,7 +65,7 @@ function Model(){
     }
 
     this.addNode = function(parent, critDetails){                                             
-        // var nodes = this.treeLayout.nodes(this._criteria).reverse();                                //TUKI NE MUKI PO CELI METODI...
+        // var nodes = this.treeLayout.nodes(this._criteria).reverse();                                
         var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();
         var newNodeName = critDetails.name;
         nodes.forEach(function(el, indx, list){
@@ -95,11 +96,13 @@ function Model(){
         }        
         
         // this.updateView(parent);
+        this.normalizeAllWeights();
+
         window.valueTree.updateView(parent);
     }
 
     this.updateNodeProperties = function(name, updatedNode){
-        var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();                    //TUKI NE MUKI;
+        var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();                    
 
         delete updatedNode.children;
 
@@ -112,7 +115,7 @@ function Model(){
     }
 
     this.updateNode = function(name, updatedNode){
-        var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();                    //TUKI NE MUKI;
+        var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();                    
         nodes.forEach(function(node){
             if(node.name == name){
                 for(var keyProp in updatedNode){
@@ -135,8 +138,8 @@ function Model(){
         return children;
     }
 
-    this.deleteCurrentCriterion = function(criterion){
-        // var nodes = this.treeLayout.nodes(this._criteria).reverse();                        //TUKI NE MUKI...
+    this.deleteCurrentCriterion = function(){
+        // var nodes = this.treeLayout.nodes(this._criteria).reverse();                        
         var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();
         var deletedNodes = [];
         for(var i = 0; i < nodes.length; i++){
@@ -154,13 +157,15 @@ function Model(){
                         deletedNodes.push(currentD);
                         
                         dd.children.splice(j, 1);
-                        // this.updateView(dd);                                                     //TUKI NE MUKI...
+                        // this.updateView(dd);                                                     
                         window.valueTree.updateView(this._criteria);
                         break;
                     }
                 }
             }
         }
+
+        this.normalizeAllWeights();
     }
 
     this.getAllNodes = function(){
@@ -202,7 +207,7 @@ function Model(){
     } 
 
     this.containsNodeName = function(name){
-        // var nodes = this.treeLayout.nodes(this._criteria).reverse();                    //TUKI NE MUKI
+        // var nodes = this.treeLayout.nodes(this._criteria).reverse();                    
         var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();
         for(var key in nodes){
             var node = nodes[key];
@@ -214,7 +219,7 @@ function Model(){
     }
 
     this.updateCriterion = function(name, updatedNode){
-        var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();                    //TUKI NE MUKI;
+        var nodes = window.valueTree.treeLayout.nodes(this._criteria).reverse();                    
         nodes.forEach(function(node){
             if(node.name == name){
                 for(var keyProp in updatedNode){
@@ -278,7 +283,7 @@ function Model(){
             }
         }
     }
-    //MR: Te metode so si kr podobne, lahk bi mal združu...
+
     this.getCriteria = function(nodeName){
         // Metoda vrne vozlišče oz. kriterij katerega ime podamo.
 
@@ -370,7 +375,9 @@ function Model(){
             type: 'root', 
             cid: 0,
             parent: 'null',
-            children: []
+            children: [],
+            levelNormalizedWeight: 1,
+            finalNormalizedWeight: 1,
         };
 
         return newRoot;
@@ -389,7 +396,10 @@ function Model(){
             description: '',
             valFuncType: '',
             valueFunction: {},
-            weight: 0
+            weight: 0,
+            userWeight: 0,
+            levelNormalizedWeight: 1,
+            finalNormalizedWeight: 1,
         };
 
         return newCriterion;
@@ -406,6 +416,9 @@ function Model(){
         newNode.parent = null;
         newNode.depth
         newNode.children = [];
+        newNode.levelNormalizedWeight = 0;
+        newNode.finalNormalizedWeight = 0;
+        newNode.userWeight = 0;
 
         return newNode;
     } 
@@ -448,13 +461,77 @@ function Model(){
         return newDicscreteFunction;
     }
 
-    this.resetMacbethDataInValueFunction = function(valueFunction){
-        valueFunction.usingMACBETH = false;
-        valueFunction.MACBETHData = {};
-        valueFunction.MACBETHOptions = [];
-        valueFunction.MACBETHIntervals = {};
-        valueFunction.MACBETHScale = [];
-        valueFunction.MACBETHDifferenceMatrix = {};
+    this.resetMacbethDataToCriterion = function(criterion){
+
+        criterion.valueFunction.usingMACBETH = false;
+        criterion.valueFunction.MACBETHData = {};
+        criterion.valueFunction.MACBETHOptions = [];
+        criterion.valueFunction.MACBETHIntervals = {};
+        criterion.valueFunction.MACBETHScale = [];
+        criterion.valueFunction.MACBETHDifferenceMatrix = {};
+    }
+
+    this.normalizeAllWeights = function(){
+        // Osveži vse normalizirane uteži.
+        var _self = this;
+
+        var root = this.getAllNodes();
+
+        _self.normalizeAllLevelWeights();
+        _self.normalizeFinalWeightRecursivelyOnChildrenOf(root);
+    }
+
+    this.normalizeAllLevelWeights = function(){
+        // Metoda vsem vozliščem izračuna in nastavi normalizirane uteži na ravni posameznega levela.
+        var _self = this;
+
+        var criteria = this.getNodesToList();
+
+        for(var i in criteria){
+            var criterion = criteria[i];
+
+            _self.normalizeLevelWeightsOnNode(criterion);
+        }
+    }
+
+    this.normalizeLevelWeightsOnNode = function(node){
+        // Normalizacija uteži levela v podanemu vozlišču
+        var _self = this;
+
+        var children = node.children;
+
+        if(typeof(children) === 'undefined'){
+            return;
+        }
+
+        // Normalizacija uteži na ravni levela -> vsotaUteži na level / vrednostjo uteži vozlšča.
+        var userWeightSum = 0;
+        children.forEach(function(el, indx){
+            userWeightSum += parseFloat(el.userWeight);
+        });
+
+        children.forEach(function(el, indx){
+            el.levelNormalizedWeight = parseFloat(el.userWeight) / userWeightSum;
+        });
+    }
+
+    this.normalizeFinalWeightRecursivelyOnChildrenOf = function(node){
+        // Rekurzivno posodablja vrednosti finalNormalizedWeight vsem podvozliščem podanega vozlišča.
+        // OPOMBA: Pred klicem te metode je pomembno, da so posodobljene vse vrednosti levelNormalizedWeight.
+        var _self = this;
+
+        if(typeof(node.children) === 'undefined'){
+            return;
+        }
+
+        for(var i in node.children){
+
+            var child = node.children[i];
+
+            child.finalNormalizedWeight = parseFloat(node.finalNormalizedWeight) * parseFloat(child.levelNormalizedWeight);
+
+            _self.normalizeFinalWeightRecursivelyOnChildrenOf(child);
+        }
     }
 
     /// VARIANTE:
@@ -603,7 +680,7 @@ function Model(){
         var model = JSON.parse(strModel);
         this.updateCriteria(model.criteriaModel);
         this.updateVariants(model.variantModel);
-        // this._criteriaModel.updateView();                                                  //TUKI NE MUKI...
+        // this._criteriaModel.updateView();                                                  
         window.valueTree.recalcData(this._criteria);
     }
 
@@ -1020,7 +1097,7 @@ function getWholeDataModel(){
 
 function updateModel(model){
 
-    var durationOld = window.valueTree.translationDuration;                             //TUKI NE MUKI
+    var durationOld = window.valueTree.translationDuration;                            
 
     window.valueTree.translationDuration = 0;
     window.model.updateModel(model);

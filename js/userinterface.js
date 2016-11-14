@@ -37,7 +37,7 @@ window.addEventListener("beforeunload", function (e) {
 });
 
 $(document).ready(function(){
-	// MR: JE TALE READEY V TRY CATCH...
+
 		window.model = new Model();
         window.model.resetModel();
 
@@ -57,12 +57,12 @@ $(document).ready(function(){
         $('#dialogValFuncLinear').DialogLinear({autoOpen: false});
         $('#dialogValFuncDiscrete').DialogDiscrete({autoOpen: false});
         $('#dialogWeight').DialogWeights({autoOpen: false});
-        // MR: ZA dialog weihts nima _self.id .... pa ko bo čas preglej to enotnost dialogov (autoopen, refreshdialog, refresh controls.... ---> mogoče bi lahko lih iz tega naredu kak ta prototype...)
-        
         $('#macbethIntervalTooltip').tooltipMACBETHInterval({});
 
         // YesNo DialogBox intialization
         $('#dialogYesNoMessage').messageYesNoDialog({autoOpen: false});
+
+        MacbethIntervalCalculator();
 
         // $("#tabTree").on("click", refreshCircMenu);
 
@@ -269,7 +269,7 @@ function popUpDialogValFunc(){
 
 function popUpDialogWeights(){
 
-    $('#dialogWeight').DialogWeights('open');
+    $('#dialogWeight').DialogWeights('open', currentD);
 }
 
 function popUpMACBETHDialog(){
@@ -316,6 +316,14 @@ function CircularMenu(){
 
     this.btnValFunc = $("<div id='menBtnValFunc' class='circMenuItem' style='position:absolute; visibility:hidden;"+
                     " top:" + 0 + "px; left:" + 0 + "px; background: url(images/imgValFunc32.png)' onClick='popUpDialogValFunc()'></div>");
+
+
+    $(this.btnRemove).jqxTooltip({content: 'Delete node'});
+    $(this.btnAddNode).jqxTooltip({content: 'Add node'});
+    $(this.btnAddCriteria).jqxTooltip({content: 'Add criterion'});
+    $(this.btnDetails).jqxTooltip({content: 'Properties'});
+    $(this.btnWeight).jqxTooltip({content: 'Edit weights'});
+    $(this.btnValFunc).jqxTooltip({content: 'Edit value function'});
 
     $('body').append(this.btnRemove);
     $('body').append(this.btnAddNode);
@@ -1467,9 +1475,9 @@ function ValueTree(){
                             noAction: function(){
                                 // Funkcija shrani samo kriterij.
 
-                                // MR: BREZ DELETA AMPAK NAREDI NEKJE UREJANJE VARIANT.... DA JIM BO LAHKO BRISAL OZ. DODAJAL LASTNOSTI NEGLEDE NA DREVO
-                                // TUKAJ BREZ DELETA, KER ČE REMOVAMO NODE LASTNOSTI VARIANTAM OSTANEJO!!!!!1 IN NAJ BO NEKJE NAREJENO UREJANJE ZA VARIANTE POSEBAJ (PRIKAZ KAJ JE KJE IN KATERE LASTNOSTI!! NISO VKLJUČENE V MODEL)!!!! 
-                                // model.removePropertyOfVariants(_self.oldCriterionName);
+
+
+                               // model.removePropertyOfVariants(_self.oldCriterionName);
 
                                 _self._saveCriterionToModel();
                                 _self._close();
@@ -2829,15 +2837,18 @@ function ValueTree(){
 
         _refreshDialog: function(){
             // Metoda nastavi kontrole glede na vrednosti, ki so trenutno nastavljene v modelu.
-            
-            if(!this.options.criterion.valueFunction){
-                this.resetSliders(this.options.criterion);
+            var _self = this;
+
+            if(!_self.options.criterion.valueFunction){
+                _self.resetSliders(this.options.criterion);
             }
             else{
-                this.setSliders(this.options.criterion);
+                _self.setSliders(this.options.criterion);
             }
 
-            this._refreshControls();
+            _self._refreshControls();
+
+            _self._disableAllBoundedSliders();
         },
 
         _refreshControls: function(){
@@ -2961,7 +2972,8 @@ function ValueTree(){
         _addCategoryToPanel: function(newCategoryName){
             var _self = this;
 
-            var newSliderID = 'slider' + newCategoryName;
+            // Se znebi presledkov.
+            var newSliderID = 'slider' + newCategoryName.split(" ").join("_");
 
             var newCategoryDiv = $('<div class="categoryDiv">' + 
                                 '<div class="categoryDelete celle"><div class="categoryImageDiv"><img src="./images/imgRemoveSelected16.png"/></div></div>' +
@@ -3029,10 +3041,13 @@ function ValueTree(){
             // Kadar kriterij uporablja MACBETH se ob spremembi spremenijo intervali.
             $(newSliderSelector).on('slideEnd', function (event) { 
 
-                _self._recalculateIntervals();
+                var movedCategoryName = $(event.target).attr('categoryName');
+
+                _self._recalculateIntervals(movedCategoryName);
             }); 
             // Event za spremembo intervalov je potreben tudi kadar se slider spreminja z pomočjo gumbov ob levi in desni.
             $(newCategoryDiv).find('.jqx-icon-arrow-right').on('click', function(){
+                // MR: NUJNO NUJNO PRIDOBI IME KATEGORIJ IN GA PODAJ (TAKO KOT PRI SLIDANJU...)
 
                 _self._recalculateIntervals();
             });
@@ -3198,7 +3213,7 @@ function ValueTree(){
             return scale;
         },
 
-        _recalculateIntervals: function(){
+        _recalculateIntervals: function(movedCategoryName){
             // Preračuna intervale, glede na trenutno nastavljene sliderje in jih nastavi.
             var _self = this;
 
@@ -3206,12 +3221,11 @@ function ValueTree(){
                 return;
             }
 
-            // MR: TUKAJ SE ZADEVA DEJANSKO SHRANI ... .TOREJ ČE BO SLIDER SPREMENJEN CANCLE NE RAZVELJAVI.... !!!!!!  (probaj se mi ussaj zdi tako...)
             var categoryName = $(event.currentTarget).attr('categoryName');
             var scale =_self._getMACBETHScaleFromSliders();
             var differenceMatrix = _self.options.criterion.valueFunction.MACBETHDifferenceMatrix;
 
-            var intervals = calculateIntervalsFor(scale, differenceMatrix);
+            var intervals = MacbethIntervalCalculator.calculateIntervalsFor(scale, differenceMatrix, movedCategoryName);
 
             _self.options.criterion.valueFunction.MACBETHIntervals = intervals;
             _self._setValueOfSlidersOnValueOfIntervals();
@@ -3429,7 +3443,6 @@ function ValueTree(){
                             _self.options.criterion.valueFunction.MACBETHDifferenceMatrix = result.MACBETHDifferenceMatrix;
                         }
 
-                        _self.options.onClose();
                         _self.close();
                     });
 
@@ -3450,7 +3463,7 @@ function ValueTree(){
                             contentText: "All macbeth data will be lost. Do you wnat to proceed?",
                             yesAction: function(){
 
-                                model.resetMacbethDataInValueFunction(_self.options.criterion.valueFunction);
+                                model.resetMacbethDataToCriterion(_self.options.criterion);
 
                                 _self._refreshDialog();
                             }
@@ -3512,7 +3525,6 @@ function ValueTree(){
 
                         _self.silentSliderChange = true;
 
-                        // MR: tele val k se uporabljajo... umes sem ugotovil da je bolje če se uporabi 'setValue' ... poskusi zamenjat in stestiraj če deluje...
                         if(selectedValue == ''){
                             $('#sliderMacRelation').jqxSlider('val', 0);
                             _self.silentSliderChange = false;
@@ -3554,11 +3566,6 @@ function ValueTree(){
             });
         },
 
-        // MR: 23.10.2016
-        // ko dodaš novo kategorijo -> uporabiš macbeth daš vrednost sliderja na nekaj več od 0 in shraniš. potem odpreš in probaš zaslidat .... exception max call stack..
-        // ja tko da mogoče bi onemogočil slidanje za take al pa kaj? ne vem mogoče je na enemu izmec onchange napaka...
-
-
         open: function(criterion){
             var _self = this;
 
@@ -3575,6 +3582,9 @@ function ValueTree(){
 
         close: function(){
             // Resetiranje gradnikov.
+            var _self = this;
+
+            _self.options.onClose();
 
             $('#MACBETHgrid').MCGrid('getJqxGrid').jqxGrid('clearselection');
             $('#sliderMacRelation').jqxSlider('setValue', 0);
@@ -3618,8 +3628,6 @@ function ValueTree(){
                 }
             }
 
-            // MR:TO BI MORAL DELATI OB SHRANITVI DISKRETNEGA DIALOGA, ČE JE PRIŠLO DO RAZLIK... TAKO BRISANJE IN DODAJANJE.
-            // MR: KER ČENE BO MOGOČE LHAKO MED KALKULACIJO PRIHAJALO DO NAPAK OZ. NAREDI USAJ FLAG DA SO PODATKI TRENUTNO NEVELJAVNI IN DA SE NE MORE RAČUNAT...
             // Onravnavanje odstranjenih kategorij.
             // Pomoč z deleted names, zaradi spremembe indexov ob izbrisu elementov v seznamu....
             var deletedNames = [];
@@ -3930,7 +3938,7 @@ function ValueTree(){
             // Zaradi bug-a v trenutni verziji jqWidgets-a ostane kljub destroyu zelen div, 
             // ki se generira ob zamenjavi stolpcev. Zato ga tukaj posebaj pobriše.
             $("div[class='jqx-grid-group-drag-line']").remove();
-            //MR: Te se ne pojavijo, ker niso v ospredju... jih prekrivata pop up okni....
+            //Te se ne pojavijo, ker niso v ospredju... jih prekrivata pop up okni....
 
             $('.MCGridParentDiv').prepend('<div id="' + this.gridDivID.substring(1, this.gridDivID.length) + 
                 '" class="MCGrid"></div>');
@@ -4175,16 +4183,16 @@ function ValueTree(){
 
             var criterion = $('#dialogMACBETH').DialogMACBETHH('getCurrentCriterion');
 
-            // MR: tale cuurentD bi lahko spremenil v options.criterion, ko boš dodal...
             var macData = model.getCriteria(criterion.name).valueFunction.MACBETHData;
             var macOptions = model.getCriteria(criterion.name).valueFunction.MACBETHOptions;
-            var bestCategory =  macOptions[0];
+            var bestCategory = macOptions[0];
             var worstCategory = macOptions[macOptions.length-1];
 
             var mappedMacbethMatrix = _self._mapDifferences(macData);
             var constraintsMatrix = _self._createConstraintMatrixFrom(mappedMacbethMatrix);
 
-            // MRN: Vklopi šumnike (testiraj še enkrat)
+            // Preslikava imen zaradi šumnikov, imen z presledki in posebnmimi znaki.. (x * y)
+
             constraintsMatrix = _self._mapSumniki(macOptions, constraintsMatrix);
             bestCategory = _self.sumnikiMapReverse[bestCategory];
             worstCategory = _self.sumnikiMapReverse[worstCategory];
@@ -4205,13 +4213,14 @@ function ValueTree(){
                 }
             }
             
-            // MRN: Vklopi šumnike2
+            // Preslikava nazaj v originalna imena
+
             basicScale = _self._mapSumnikiBack(basicScale);
 
             var macbethTransformedScale = _self._transformBasciScale(basicScale);
             
             // Pridobitev intervalov kategorij.
-            var intervals = calculateIntervalsFor(macbethTransformedScale, mappedMacbethMatrix);
+            var intervals = MacbethIntervalCalculator.calculateIntervalsFor(macbethTransformedScale, mappedMacbethMatrix);
 
             // Kadar je v panelu dodana kaka kategorije več, pride do tega, da ji ni bil dodeljen noben interval (redko ... če sta dve na novo dodani, in če niso vnešeni novi podatki v macbeth grid...)
             // Zato tukaj tistim kategorijam, ki niso dobile intervala doda interval od 0 do 0.
@@ -4464,560 +4473,738 @@ function ValueTree(){
 
             return basicScale;
         }
-
-
     });
 })(jQuery);
 
 
-function calculateIntervalsFor(basicScale, macbethMatrix){
-    // Metoda izračuna intervale za vse kategorije podane v basicScale seznamu.
-    // macbethMatrix je macbeth matrika, ki ima mapirane vrednosti vnešenih razlik iz imenskih v številske (weak = 1, ...)
-    var _self = this;
 
-    var mappedReuslt = mapSumnikiInterval(basicScale, macbethMatrix);
+//////////////////////////////////
+//////    MACHBET - Izračun intervalov
+//////////////////////////////////
 
-    basicScale = mappedReuslt.basicScale;
-    macbethMatrix = mappedReuslt.macbethMatrix;
 
-    if(basicScale.length == 0){
-        return;
-    }
+function MacbethIntervalCalculator(){
 
-    basicScale.sort(function(a, b){
-        return b.value - a.value;
-    });
+    MacbethIntervalCalculator.calculateIntervalsFor = function(basicScale, macbethMatrix, movedCategory){
+        // Metoda izračuna intervale za vse kategorije podane v basicScale seznamu.
+        // macbethMatrix je macbeth matrika, ki ima mapirane vrednosti vnešenih razlik iz imenskih v številske (weak = 1, ...)
 
-    var intervals = {};
-    var categories = Object.keys(basicScale);
+        // Parameter: movedCategory predstavlja ime kategorij katere vrednost vzamemo pri stapljajnju scale-a. Torej kadar pride do 
+        // kategorij ki nimajo razlike (NO oz. 0) je v basicScale potrebno od ene vzeti vrednost. Ponavadi so iste, kadar pa uporabnik spremeni slider, je potrebno vzeti
+        // vrednost kategorij katere slider je spremnijal.
 
-    var bestCategoryName = basicScale[0].name;
-    var worstCategoryName = basicScale[basicScale.length-1].name;
+        var _self = this;
 
-    // Vrednosti najboljše in najslabše kategorije so zmeraj 100 in 0.
-    var categoryResults = {};
-    categoryResults[bestCategoryName] = {
-        interval: {upperBound: 100, lowerBound: 100},
-        value: 100
-    }
-    categoryResults[worstCategoryName] = {
-        interval: {upperBound: 0, lowerBound: 0},
-        value: 0
-    }
+        var mappedReuslt = mapSumnikiInterval(basicScale, macbethMatrix);
 
-    // Za najboljšo in najslabšo kategorijo se intervali ne računajo.
-    for(var i=1; i < basicScale.length - 1; i++){
+        basicScale = mappedReuslt.basicScale;
+        macbethMatrix = mappedReuslt.macbethMatrix;
+        movedCategory = mapperSumnikiInterval[movedCategory];
 
-        var categoryName = basicScale[i].name;
-        var categoryInterval = calculateIntervalFor(categoryName, basicScale, macbethMatrix);
-        
-        // console.log("-")
-        // console.log(categoryName + ": " + categoryInterval.lowerBound.interpolatedValue + " - " + categoryInterval.upperBound.interpolatedValue);
-
-        // Odšteje/prišteje še 0.01 zato ker se intervali ne smejo prekrivati... (ne sme pa tega storiti kadar sta lower in upper enaka, ker ni smisla...)
-        if(categoryInterval.lowerBound.interpolatedValue != categoryInterval.upperBound.interpolatedValue){
-            categoryInterval.lowerBound.interpolatedValue += 0.01
-            categoryInterval.upperBound.interpolatedValue -= 0.01   
-        }
-        categoryInterval.lowerBound.interpolatedValue = categoryInterval.lowerBound.interpolatedValue.myRound(2);
-        categoryInterval.upperBound.interpolatedValue = categoryInterval.upperBound.interpolatedValue.myRound(2);
-
-        // console.log(categoryName + ": " + categoryInterval.lowerBound.interpolatedValue + " - " + categoryInterval.upperBound.interpolatedValue);
-
-        intervals[categoryName] = {
-            upperBound: categoryInterval.upperBound.interpolatedValue,
-            lowerBound: categoryInterval.lowerBound.interpolatedValue
-        };
-
-        var categoryValue = basicScale[i].value;
-
-        // Vrednost ne sme biti manjša do lower bound-a in večja od upper bounda (zaradi tistih +/- 0.01 ....)
-        if(categoryValue < categoryInterval.lowerBound.interpolatedValue){
-            categoryValue = categoryInterval.lowerBound.interpolatedValue
-        }
-        if(categoryValue > categoryInterval.upperBound.interpolatedValue){
-            categoryValue = categoryInterval.upperBound.interpolatedValue
+        if(basicScale.length == 0){
+            return;
         }
 
-        categoryResults[categoryName] = { 
-            value: categoryValue,
-            interval: intervals[categoryName]
-        };
-    }
-
-    categoryResults = repairIntervalsNoDifferenceCategories(categoryResults, macbethMatrix);
-
-    categoryResults = mapBackSumnikiInterval(categoryResults);
-
-    return categoryResults;
-}
-
-function calculateIntervalFor(categoryName, basicScale, macbethMatrix){
-    // Metoda izračuna zgornji in spodnji interval za podano kategorijo...
-    var _self = this;
-
-    // Pretvori basic scale iz seznama v objekt.
-    var basicScaleObject = basicScaleArrayToObject(basicScale);
-
-    // Pridobitev vseh intervalov v katerih je vključena kategorija za katero iščemo interval.
-    // Pomembni so ti intervali, ker sprememba intervala vpliva na vse te intervale in ta sprememba ne sme kršiti pogojev (pogoj 1 in 2....).
-    
-    var categoryValue = basicScaleObject[categoryName];
-
-    var expressions = getAllExpressionsFromConditionTwo(categoryName, basicScaleObject, macbethMatrix);
-    var solutionCandidates = solveExpressions(expressions, categoryName, categoryValue);
-
-    // Iskanje spodnje meje.
-    var lowerBound = getSolutionLowerBoundOfInterval(solutionCandidates, categoryName, basicScale);
-    // Iskanje zgornje meje.
-    var upperBound = getSolutionUpperBoundOfInterval(solutionCandidates, categoryName, basicScale);
-
-    var interval = {
-        upperBound: upperBound,
-        lowerBound: lowerBound
-    }
-
-    return interval;
-}
-
-function getSolutionUpperBoundOfInterval(solutionCandidates, categoryName, basicScale){
-    // Za rešitev zgornje meje intervala vzamemo najmanjšo rešitev, ki pa je večja(ali enaka) od vrednosti kategorije.
-    // Potem še preveri pogoj ena.
-    var _self = this;
-    
-    var basicScaleObject = basicScaleArrayToObject(basicScale);
-
-    var categoryValue = basicScaleObject[categoryName];
-    var bestValue = basicScale[0].value;
-
-    var upperSolutions = solutionCandidates.filter(function(solution){
-        return solution >= categoryValue;
-    });
-
-    if(upperSolutions.length == 0){
-        return { 
-            type:'upperBound', 
-            basicScaleValue: categoryValue,
-            interpolatedValue: model.linearInterpolation(categoryValue, 0, 0, bestValue, 100)
-        }
-    }
-
-    var solutionUpperBound = upperSolutions[0]; 
-    for(var i=0; i < upperSolutions.length; i++){
-        var solution = upperSolutions[i];
-
-        if(solution < solutionUpperBound){
-            solutionUpperBound = solution;
-        }
-    }
-
-    solutionUpperBound = checkBoundForConditionOne(categoryName, solutionUpperBound, basicScaleObject);
-    var interpolated = model.linearInterpolation(solutionUpperBound, 0, 0, bestValue, 100);
-    // console.log(categoryName + " " + solutionUpperBound + " -> " + interpolated);
-
-    return {
-        type:'upperBound', 
-        basicScaleValue: solutionUpperBound,
-        interpolatedValue: interpolated
-    }
-}
-
-function getSolutionLowerBoundOfInterval(solutionCandidates, categoryName, basicScale){
-    // Za rešitev spodnje meje intervala vzamemo največjo rešitev, ki pa je manjša(ali enaka) od vrednosti kategorije.
-    // Potem še preveri pogoj ena.
-    var _self = this;
-
-    var basicScaleObject = basicScaleArrayToObject(basicScale);
-    var categoryValue = basicScaleObject[categoryName];
-    var bestValue = basicScale[0].value;
-
-    var lowerSolutions = solutionCandidates.filter(function(solution){
-        return solution <= categoryValue;
-    });
-
-    if(lowerSolutions.length == 0){
-        return { 
-            type:'lowerBound', 
-            basicScaleValue: categoryValue,
-            interpolatedValue: model.linearInterpolation(categoryValue, 0, 0, bestValue, 100)
-        }
-    }
-
-    var solutionLowerBound = lowerSolutions[0]; 
-    for(var i=0; i < lowerSolutions.length; i++){
-        var solution = lowerSolutions[i];
-
-        if(solution > solutionLowerBound){
-            solutionLowerBound = solution;
-        }
-    }
-
-    solutionLowerBound = checkBoundForConditionOne(categoryName, solutionLowerBound, basicScaleObject);
-
-    var interpolated = model.linearInterpolation(solutionLowerBound, 0, 0, bestValue, 100);
-    // console.log(categoryName + " " + solutionLowerBound + " -> " + interpolated);
-
-    return { 
-        type:'lowerBound', 
-        basicScaleValue: solutionLowerBound,
-        interpolatedValue: interpolated
-    }
-}
-
-function checkBoundForConditionOne(categoryName, currentSolution, basicScaleObject){
-    // Pridobljen rezultat je pridobljen iz pogoja 2 (Condition 2).
-    // Ta rezultat ne sme kršiti pogoja 1! Tako da preveri še za ta pogoj in po potrebi nastavi novo vrednost.
-    // Pogoj1: vse kategorije, ki jih je uporabnik ocenil kot manj vredne (z rzporeditvijo) morajo imeti na koncu tudi manjšo vrednost!
-    // Ravno tako morajo vse višje kategorije imeti višjo vrednost.
-
-    var _self = this;
-
-    var categories = Object.keys(basicScaleObject);
-    var catIndx = categories.indexOf(categoryName);
-    if(catIndx == -1){
-        throw "Napaka: za izračun intervala kategorije ni podanih kategorij!";
-    }
-
-    // Preveri tiste, ki so višje ocenjeni.
-    for(var i=0; i < catIndx; i++){
-
-        var higherCategoryName = categories[i];
-        var higherValue = basicScaleObject[higherCategoryName];
-
-        if(higherValue < currentSolution){
-            currentSolution = higherValue;
-        }
-    }
-
-    // Preveri tiste, ki so nižje ocenjeni.
-    for(var i=catIndx+1; i < categories.length; i++){
-
-        var lowerCategoryName = categories[i];
-        var lowerValue = basicScaleObject[lowerCategoryName];
-
-        if(lowerValue > currentSolution){
-            currentSolution = lowerValue;
-        }
-    }
-
-    return currentSolution;
-}
-
-function exprStringFor(categoryName, categoryNameValFor, basicScale){
-
-    if(categoryName == categoryNameValFor){
-        return categoryName;
-    }
-
-    return basicScale[categoryNameValFor].myRound(2);
-}
-
-function getIntervalsWith(categoryName, basicScale){
-    // Pridobi vse intervale v basicScale-u, ki so v povezavi z kategorijo. 
-    // V nekaterih intervalih je categoryName zgoraj v nekaterih pa spodaj. 
-    // basicScale mora biti sortiran po velikosti.
-
-    var _self = this;
-
-    var intervals = [];
-    var categories = Object.keys(basicScale);
-    var categoryIndex = categories.indexOf(categoryName);
-    
-    if(categoryIndex == -1){
-        throw "V basicScale ni kategorije " + categoryName + "za katero se išče interval!";
-    }
-
-    // Intervali kjer je categoryName spodnja meja.
-    for(var i = 0; i < categoryIndex; i++){
-        var cat = categories[i];
-        intervals.push({
-            upperElement: cat,
-            lowerElement: categoryName
+        basicScale.sort(function(a, b){
+            return b.value - a.value;
         });
-    }
 
-    // Intervali kjer je categoryName zgornja meja.
-    for(var i=categoryIndex+1; i < categories.length; i++){
-        var cat = categories[i];
-        intervals.push({
-            upperElement: categoryName,
-            lowerElement: cat
-        });
-    }
+        // Pravilno obravnava kategorije, ki so bile ocenjnene z razloko NO oz. 0
+        var noDifferenceCatogories = getCategoriesNoDifference(macbethMatrix);
+        var unmergedCategoriesNames =Object.keys(basicScale);
+        var mergedResult = mergeSameCategories(basicScale, macbethMatrix, noDifferenceCatogories, movedCategory);
 
-    return intervals;
-}
+        basicScale = mergedResult.scale;
+        macbethMatrix = mergedResult.matrix;
 
-function getAllExpressionsFromConditionTwo(categoryName, basicScaleObject, macbethMatrix){
-    // Metoda vrne vse izraze, ki so izpeljani iz pogoja 2.
+        var intervals = {};
+        var categories = Object.keys(basicScale);
 
-    // Pogoj dva pravi:
-    // V x,y,w,z € S with (x,y) € Ci and (w,z) € C,:
-    //   i > j => o(x) - o(y) > o(w) - o(z)
-    // Torej: vsi kvadratki v matriki (w,z), ki imajo manjšo vrednost od kvadratka (x,y) -> razlika med vrednosjo razlik basicScale(x) - basicScale(y)
-    // mora biti večja od razlike basicScale(w) - basicScale(z)
+        var bestCategoryName = basicScale[0].name;
+        var worstCategoryName = basicScale[basicScale.length-1].name;
 
-    var _self = this;
-
-    var categoryIntervals = getIntervalsWith(categoryName, basicScaleObject);
-
-    var expressions = [];
-    for(var i=0; i < categoryIntervals.length; i ++){
-
-        var interval = categoryIntervals[i];
-        
-        // Ime kategorije ki je v paru v inervalu z kategorijo katere interval išče.
-        var pairName = interval.upperElement;
-        if(pairName == categoryName){
-            pairName = interval.lowerElement;
+        // Vrednosti najboljše in najslabše kategorije so zmeraj 100 in 0.
+        var categoryResults = {};
+        categoryResults[bestCategoryName] = {
+            interval: {upperBound: 100, lowerBound: 100},
+            value: 100
+        }
+        categoryResults[worstCategoryName] = {
+            interval: {upperBound: 0, lowerBound: 0},
+            value: 0
         }
 
-        // Razlika, ki jo je uporabnik dodelil med ti dve kategoriji (številska).
-        var macbethDifference = macbethMatrix[interval.upperElement][interval.lowerElement];
+        // Za najboljšo in najslabšo kategorijo se intervali ne računajo.
+        for(var i=1; i < basicScale.length - 1; i++){
 
-        // Pari, ki jim je uporabnik dodelil večjo vrednost kot trenutnemo paru (na intervalu).
-        var uppers = getUpperPairs(macbethMatrix, macbethDifference);
-        // Pari, ki jim je uporabnik dodelil manjšo vrednost kot trenutnemo paru (na intervalu).
-        var lowers = getLowerPairs(macbethMatrix, macbethDifference);
-
-        var el1 = exprStringFor(categoryName, interval.upperElement, basicScaleObject);
-        var el2 = exprStringFor(categoryName, interval.lowerElement, basicScaleObject);
-        //Pridobi izraze z pari, ki jim je uporabnik dodelil manjšo razliko.
-        var expressionLeftPart = el1 + " - " + el2 + " = "
-        for(var j = 0; j < lowers.length; j++){
-            var lower = lowers[j];
-
-            // Če je kategorije za katero se izše interval se na njenih mestih ne pojavi številka ampak ime kot spremenljivka.
-            var el3 = exprStringFor(categoryName, lower.name1, basicScaleObject);
-            var el4 = exprStringFor(categoryName, lower.name2, basicScaleObject);
-
-            var exp = expressionLeftPart + el3 + " - " + el4;
-
-            expressions.push(exp);
-        }
-
-        //Pridobi izraze z pari, ki jim je uporabnik dodelil večjo razliko.
-        var expressionRightPart = " = " + el1 + " - " + el2;
-        for(var j = 0; j < uppers.length; j++){
-            var upper = uppers[j];
-
-            // Če je kategorije za katero se izše interval se na njenih mestih ne pojavi številka ampak ime kot spremenljivka.
+            var categoryName = basicScale[i].name;
+            var categoryInterval = calculateIntervalFor(categoryName, basicScale, macbethMatrix);
             
-            var el3 = exprStringFor(categoryName, upper.name1, basicScaleObject);
-            var el4 = exprStringFor(categoryName, upper.name2, basicScaleObject);
+            // console.log("-")
+            // console.log(categoryName + ": " + categoryInterval.lowerBound.interpolatedValue + " - " + categoryInterval.upperBound.interpolatedValue);
 
-            var exp = el3 + " - " + el4 + expressionRightPart;
+            // Odšteje/prišteje še 0.01 zato ker se intervali ne smejo prekrivati... (ne sme pa tega storiti kadar sta lower in upper enaka, ker ni smisla...)
+            if(categoryInterval.lowerBound.interpolatedValue != categoryInterval.upperBound.interpolatedValue){
+                categoryInterval.lowerBound.interpolatedValue += 0.01
+                categoryInterval.upperBound.interpolatedValue -= 0.01   
+            }
+            categoryInterval.lowerBound.interpolatedValue = categoryInterval.lowerBound.interpolatedValue.myRound(2);
+            categoryInterval.upperBound.interpolatedValue = categoryInterval.upperBound.interpolatedValue.myRound(2);
 
-            expressions.push(exp);
+            // console.log(categoryName + ": " + categoryInterval.lowerBound.interpolatedValue + " - " + categoryInterval.upperBound.interpolatedValue);
+
+            intervals[categoryName] = {
+                upperBound: categoryInterval.upperBound.interpolatedValue,
+                lowerBound: categoryInterval.lowerBound.interpolatedValue
+            };
+
+            var categoryValue = basicScale[i].value;
+
+            // Vrednost ne sme biti manjša do lower bound-a in večja od upper bounda (zaradi tistih +/- 0.01 ....)
+            if(categoryValue < categoryInterval.lowerBound.interpolatedValue){
+                categoryValue = categoryInterval.lowerBound.interpolatedValue
+            }
+            if(categoryValue > categoryInterval.upperBound.interpolatedValue){
+                categoryValue = categoryInterval.upperBound.interpolatedValue
+            }
+
+            categoryResults[categoryName] = { 
+
+                value: categoryValue,
+                interval: intervals[categoryName]
+            };
+        }
+
+        categoryResults = unmergeSameCategories(categoryResults, mergedResult.mergedPairs, unmergedCategoriesNames.length);
+
+        categoryResults = mapBackSumnikiInterval(categoryResults);
+
+        return categoryResults;
+    }
+
+    this.getCategoriesNoDifference = function(macbethMatrix){
+
+        var sameCategories = {};
+
+        var cbGetCategoriesWithNoDifference = function(rowCatName, colCatName, difference, rowIndex, colIndex){
+
+            if(difference == 0){
+
+                if(typeof(sameCategories[rowCatName]) == 'undefined'){
+                    sameCategories[rowCatName] = [];
+                }
+                // if(typeof(sameCategories[colCatName]) == 'undefined'){
+                //     sameCategories[colCatName] = [];
+                // }
+                
+                sameCategories[rowCatName].push(colCatName);
+                // sameCategories[colCatName].push(rowCatName);
+            }
+        }
+
+        foreachMcbethMatrix(macbethMatrix, cbGetCategoriesWithNoDifference);
+		
+        return sameCategories;
+    }
+
+    this.mergeSameCategories = function(scale, macbethMatrix, sameCategories, movedCategory){
+        var _self = this;
+
+        var margedMatrix = macbethMatrix;
+        var mergedScale = scale;
+
+        // V spremenljivko mergedPairs se shranjujejo, vsi stopljeni pari. Z pomočjo tega se na koncu nazaj razširi vrednosti na originalne kategorije.
+        var mergedPairs = {};
+
+        for(var firstSameCategory in sameCategories){
+            
+            var otherSameCategories = sameCategories[firstSameCategory];
+            for(var i in otherSameCategories){
+                var secondSameCategory = otherSameCategories[i];
+				
+                // Klic metode, ki stopi matriko.
+                margedMatrix = mergeMatrixTwoSameCategories(mergedScale, margedMatrix, firstSameCategory, secondSameCategory, movedCategory);
+               
+			   // Klic metode, ki stopi skalo.
+                mergedScale = mergeScaleTwoSameCategories(mergedScale, margedMatrix, firstSameCategory, secondSameCategory, movedCategory);
+                // Naredi rekurzivni klic stapljanja na novih podatkih.
+                var sameCategories = getCategoriesNoDifference(margedMatrix);
+                var mergedResult = mergeSameCategories(mergedScale, margedMatrix, sameCategories, movedCategory);
+
+                // Doda kateri dve kategoriji sta bili stopljeni v rezultat.
+                var combinedName = firstSameCategory.trim() + secondSameCategory.trim();
+                mergedResult.mergedPairs[combinedName] = [firstSameCategory, secondSameCategory];
+                
+                return mergedResult;
+            }
+        }
+
+        // Vrne matriko kadar ni več enakih kategorij.
+        return {
+            matrix: margedMatrix,
+            scale: mergedScale,
+            mergedPairs: {}
         }
     }
 
-    return expressions;
-}
+    this.mergeScaleTwoSameCategories = function(scale, macbethMatrix, catOneName, catTwoName, movedCategory){
+		
+        var mergedScale = [];
+        var combinedName = catOneName.trim() + catTwoName.trim();
+		
+        var mergeDone = false;
 
-function getLowerPairs(mapped, value){
+        // Pridobi vrednost obeh kategorij, ki se združujeta.
+        var catOneValue, catTwoValue;
+        scale.forEach(function(el, indx){
+            if(el.name == catOneName){
+                catOneValue = el.value;
+            }
+            else if(el.name == catTwoName){
+                catTwoValue = el.value
+            }
+        });
 
-    var lowersResult = [];
+        // Vrednost, ki jo zapiše na mesto, kjer se staplajta kategoriji.
+        // Ta vrednost mora biti v primeru kadar imamo movedCategory enaka vrednosti kategorije, ki jo je uporabnik premaknil.
+        // Kadar te kategorije ni pomeni, da sta vrednosti od catOneName in catTwoName enaki.
+        var megreToValue = catOneValue;
+        if(movedCategory == catTwoName){
+            megreToValue = catTwoValue;
+        }
 
-    var k1 = Object.keys(mapped);
-
-    for(var i = 0; i < k1.length; i++){
-
-        var kat1Name = k1[i];
-        var kat1 = mapped[kat1Name];
-
-        var k2 = Object.keys(kat1);
-
-        for(var j = 0; j < k2.length; j++){
-
-            var kat2Name = k2[j];
-
-            var diffValue = mapped[kat1Name][kat2Name];
-
-            if(diffValue < value){
-
-                lowersResult.push({
-                    name1: kat1Name,
-                    name2: kat2Name,
-                    value: diffValue
-                });
+        // Prepis vrednosti v novo stopljeno skalo.
+        for(var i in scale){
+            var cat = scale[i];
+			
+            if(!mergeDone){
+                if(cat.name == catOneName || cat.name == catTwoName){
+                    mergedScale.push({
+                        name: combinedName,
+                        value: megreToValue
+                    });
+                    mergeDone = true;
+                }
+            }
+			
+            if(cat.name != catOneName && cat.name != catTwoName){
+                mergedScale.push(scale[i]);
             }
         }
-    } 
+        return mergedScale;
+    }  
 
-    return lowersResult;
-}
+    this.mergeMatrixTwoSameCategories = function(scale, macbethMatrix, catOneName, catTwoName, movedCategory){
+        // Metoda stopi dve kategorije.
+        // Na mesto stopljene kategorij zapiše podatke prve kategorije. Podatke druge kategorije preskoči (morali bi biti isti kot pri prvi kategoriji).
 
-function getUpperPairs(mapped, value){
+        var combinedName = catOneName.trim() + catTwoName.trim();
+        var combinedMatrix = {};
 
-    var uppersResults = [];
-
-    var k1 = Object.keys(mapped);
-
-    for(var i = 0; i < k1.length; i++){
-
-        var kat1Name = k1[i];
-        var kat1 = mapped[kat1Name];
-
-        var k2 = Object.keys(kat1);
-
-        for(var j = 0; j < k2.length; j++){
-
-            var kat2Name = k2[j];
-
-            var diffValue = mapped[kat1Name][kat2Name];
-
-            if(diffValue > value){
-
-                uppersResults.push({
-                    name1: kat1Name,
-                    name2: kat2Name,
-                    value: diffValue
-                });
+        var cb = function(rowCatName, colCatName, difference, rowIndex, colIndex){
+			
+            // Preskok podatkov druge kategorije.
+            if(rowCatName == catTwoName || colCatName == catTwoName){
+                return;
             }
+			
+            var rowName =  rowCatName != catOneName ? rowCatName : combinedName;
+            var colName = colCatName != catOneName  ? colCatName : combinedName;
+
+            if(typeof(combinedMatrix[rowName]) === 'undefined'){
+                combinedMatrix[rowName] = {};
+            }
+			
+            combinedMatrix[rowName][colName] = difference;
         }
-    } 
+		
+        foreachMcbethMatrix(macbethMatrix, cb);
+		
+        // Na koncu doda še najmanj pomembno kategorijo, kjer se primerja sama s sabo in ni nikoli nobene razlike (zadnja celica v grid-u je zmeraj NO).
+        var cats = Object.keys(macbethMatrix);
+        combinedMatrix[cats[cats.length-1]] = {};
 
-    return uppersResults;
-}
+        return combinedMatrix;
+    }
 
-function basicScaleArrayToObject(basicScaleArray){
+    this.unmergeSameCategories = function(categoryResults, mergedPairs, numOfCats){
+        // Meotda pretvori izračunane intervale, kjer so stopljene kategorije brez razlike nazaj v kategorije, ki niso stopljene.
+        // Metoda se kliče rekurzivno, saj je bila lahko stopljena kategorija sestavljena tudi iz "pod" stopljene kategorije.
 
-    var basicScale = {};
+        var mappedIntervals = [];
+		
+        for(var catName in categoryResults){
+            var interval = categoryResults[catName];
 
-    basicScaleArray.forEach(function(el){
-        basicScale[el.name] = el.value;
-    });
-
-    return basicScale;
-}
-
-function solveExpressions(expressions, solvingKat, sovlingKatValue){
-
-    var solutions = [];
-
-    expressions.forEach(function(expression){
-
-        try{
-            var exprRes = algebra.parse(expression).solveFor(solvingKat);
-            var res = exprRes.numer / exprRes.denom;
-
-            solutions.push(res);
-        }
-        catch(ex){
-
-            if(ex.message == "No Solution"){
-                // console.log(expression  + " !! NO SOLUTION");
+            if(mergedPairs.hasOwnProperty(catName)){
+				
+                for(var j in mergedPairs[catName]){
+                    var catOriginalName = mergedPairs[catName][j];
+                    mappedIntervals[catOriginalName] = interval
+                }
             }
             else{
-                throw ex;
+                mappedIntervals[catName] = interval;
             }
         }
-    });
 
-    return solutions;
-}
+        // Nadaljuje postopek, dokler obstaja še kaka stopljena kategorije. (Dokler število kategorij ni enko št. kat. pred stapljanjem)
+        if(Object.keys(mappedIntervals).length != numOfCats){
+            mappedIntervals = unmergeSameCategories(mappedIntervals, mergedPairs, numOfCats);
+        }
+		
+        return mappedIntervals;
+    }
 
-function repairIntervalsNoDifferenceCategories(categoryResults, macbethMatrix){
-    // Metoda preveri ali je uporabnik ocenil katero razliko z NO oz. 0
-    // V takem primeru nastavi interval na nižjo izračunano.
+    this.foreachMcbethMatrix = function(macbethMatrix, callBackFunct){
+        
+        var rowCategoryNames = Object.keys(macbethMatrix);
+        for(var i = 0; i < rowCategoryNames.length; i++){
 
-    var rowCatKeys = Object.keys(macbethMatrix);
-    for(var i=0; i < rowCatKeys.length; i++){
-        var rowCatName = rowCatKeys[i];
+            var rowCatName = rowCategoryNames[i];
+            var rowCategory = macbethMatrix[rowCatName];
 
-        var macbethRow = macbethMatrix[rowCatName];
-        var colCatKeys = Object.keys(macbethRow);
-        for(var j=0; j < colCatKeys.length; j++){
-            var colCatName = colCatKeys[j];
+            var colCategoryNames = Object.keys(rowCategory);
 
-            var difference = macbethMatrix[rowCatName][colCatName];
+            for(var j=0; j < colCategoryNames.length; j++){
 
-            // V primeru enakosti nastavi vrednosti na manj vrednega.
-            if(difference == 0){
-                var lower = rowCatName;
-                var upper = colCatName
-                // Bolje razporejen ima v resnici manjši indeks!
-                if(rowCatKeys.indexOf(rowCatName) < rowCatKeys.indexOf(colCatName)){
-                    lower = colCatName;
-                    upper = rowCatName;
+                var colCatName = colCategoryNames[j];
+                var difference = macbethMatrix[rowCatName][colCatName];
+				
+                var result = callBackFunct(rowCatName, colCatName, difference, i, j);
+                
+                if(result == false){
+                    return;
                 }
-
-                categoryResults[upper].value = categoryResults[lower].value;
-                categoryResults[upper].interval = categoryResults[lower].interval;
             }
         }
     }
 
-    return categoryResults;
-}
+    this.calculateIntervalFor = function(categoryName, basicScale, macbethMatrix){
+        // Metoda izračuna zgornji in spodnji interval za podano kategorijo...
+        var _self = this;
 
+        // Pretvori basic scale iz seznama v objekt.
+        var basicScaleObject = basicScaleArrayToObject(basicScale);
 
-mapperSumnikiInterval = {}
-mapperReverseSumnikiInterval = {}
+        // Pridobitev vseh intervalov v katerih je vključena kategorija za katero iščemo interval.
+        // Pomembni so ti intervali, ker sprememba intervala vpliva na vse te intervale in ta sprememba ne sme kršiti pogojev (pogoj 1 in 2....).
+        
+        var categoryValue = basicScaleObject[categoryName];
 
-function mapSumnikiInterval(basicScale, macbethMatrix){
-    var _self = this;
+        var expressions = getAllExpressionsFromConditionTwo(categoryName, basicScaleObject, macbethMatrix);
+        var solutionCandidates = solveExpressions(expressions, categoryName, categoryValue);
 
-    // Mapiranje basic scalea.
-    var newBasicScale = [];
+        // Iskanje spodnje meje.
+        var lowerBound = getSolutionLowerBoundOfInterval(solutionCandidates, categoryName, basicScale);
+        // Iskanje zgornje meje.
+        var upperBound = getSolutionUpperBoundOfInterval(solutionCandidates, categoryName, basicScale);
 
-    for(var i=0; i < basicScale.length; i++){
+        var interval = {
+            upperBound: upperBound,
+            lowerBound: lowerBound
+        }
 
-        var categoryName = basicScale[i].name;
-
-        var newCodeName = 'x' + i;
-
-        mapperSumnikiInterval[categoryName] = newCodeName;
-        mapperReverseSumnikiInterval[newCodeName] = categoryName;
-
-        newBasicScale.push({
-            name: newCodeName,
-            value: basicScale[i].value
-        });
+        return interval;
     }
 
-    // Mapiranje macbeth matrike.
-    var newMacbethMatrix = {};
+    this.getSolutionUpperBoundOfInterval = function(solutionCandidates, categoryName, basicScale){
+        // Za rešitev zgornje meje intervala vzamemo najmanjšo rešitev, ki pa je večja(ali enaka) od vrednosti kategorije.
+        // Potem še preveri pogoj ena.
+        var _self = this;
+        
+        var basicScaleObject = basicScaleArrayToObject(basicScale);
 
-    var macMatxCategoryNames = Object.keys(macbethMatrix);
-    for(var i=0; i < macMatxCategoryNames.length; i++){
+        var categoryValue = basicScaleObject[categoryName];
+        var bestValue = basicScale[0].value;
 
-        var catOneName = macMatxCategoryNames[i];
-        var macbethRow = macbethMatrix[catOneName];
-        var codeNameCatOne = mapperSumnikiInterval[catOneName];
+        var upperSolutions = solutionCandidates.filter(function(solution){
+            return solution >= categoryValue;
+        });
 
-        newMacbethMatrix[codeNameCatOne] = {};
+        if(upperSolutions.length == 0){
+            return { 
+                type:'upperBound', 
+                basicScaleValue: categoryValue,
+                interpolatedValue: model.linearInterpolation(categoryValue, 0, 0, bestValue, 100)
+            }
+        }
 
-        var macRowCategoryNames = Object.keys(macbethRow);
-        for(var j=0; j < macRowCategoryNames.length; j++){
+        var solutionUpperBound = upperSolutions[0]; 
+        for(var i=0; i < upperSolutions.length; i++){
+            var solution = upperSolutions[i];
 
-            var catTwoName = macRowCategoryNames[j];
-            var codeNameCatTwo = mapperSumnikiInterval[catTwoName];
+            if(solution < solutionUpperBound){
+                solutionUpperBound = solution;
+            }
+        }
 
-            newMacbethMatrix[codeNameCatOne][codeNameCatTwo] = macbethMatrix[catOneName][catTwoName];
+        solutionUpperBound = checkBoundForConditionOne(categoryName, solutionUpperBound, basicScaleObject);
+        var interpolated = model.linearInterpolation(solutionUpperBound, 0, 0, bestValue, 100);
+        // console.log(categoryName + " " + solutionUpperBound + " -> " + interpolated);
+
+        return {
+            type:'upperBound', 
+            basicScaleValue: solutionUpperBound,
+            interpolatedValue: interpolated
         }
     }
 
-    return {
-        basicScale: newBasicScale,
-        macbethMatrix: newMacbethMatrix
+    this.getSolutionLowerBoundOfInterval = function(solutionCandidates, categoryName, basicScale){
+        // Za rešitev spodnje meje intervala vzamemo največjo rešitev, ki pa je manjša(ali enaka) od vrednosti kategorije.
+        // Potem še preveri pogoj ena.
+        var _self = this;
+
+        var basicScaleObject = basicScaleArrayToObject(basicScale);
+        var categoryValue = basicScaleObject[categoryName];
+        var bestValue = basicScale[0].value;
+
+        var lowerSolutions = solutionCandidates.filter(function(solution){
+            return solution <= categoryValue;
+        });
+
+        if(lowerSolutions.length == 0){
+            return { 
+                type:'lowerBound', 
+                basicScaleValue: categoryValue,
+                interpolatedValue: model.linearInterpolation(categoryValue, 0, 0, bestValue, 100)
+            }
+        }
+
+        var solutionLowerBound = lowerSolutions[0]; 
+        for(var i=0; i < lowerSolutions.length; i++){
+            var solution = lowerSolutions[i];
+
+            if(solution > solutionLowerBound){
+                solutionLowerBound = solution;
+            }
+        }
+
+        solutionLowerBound = checkBoundForConditionOne(categoryName, solutionLowerBound, basicScaleObject);
+
+        var interpolated = model.linearInterpolation(solutionLowerBound, 0, 0, bestValue, 100);
+        // console.log(categoryName + " " + solutionLowerBound + " -> " + interpolated);
+
+        return { 
+            type:'lowerBound', 
+            basicScaleValue: solutionLowerBound,
+            interpolatedValue: interpolated
+        }
+    }
+
+    this.checkBoundForConditionOne = function(categoryName, currentSolution, basicScaleObject){
+        // Pridobljen rezultat je pridobljen iz pogoja 2 (Condition 2).
+        // Ta rezultat ne sme kršiti pogoja 1! Tako da preveri še za ta pogoj in po potrebi nastavi novo vrednost.
+        // Pogoj1: vse kategorije, ki jih je uporabnik ocenil kot manj vredne (z rzporeditvijo) morajo imeti na koncu tudi manjšo vrednost!
+        // Ravno tako morajo vse višje kategorije imeti višjo vrednost.
+		
+        var _self = this;
+
+        var categories = Object.keys(basicScaleObject);
+        var catIndx = categories.indexOf(categoryName);
+        if(catIndx == -1){
+            throw "Napaka: za izračun intervala kategorije ni podanih kategorij!";
+        }
+		
+        // Preveri tiste, ki so višje ocenjeni.
+        for(var i=0; i < catIndx; i++){
+			
+            var higherCategoryName = categories[i];
+            var higherValue = basicScaleObject[higherCategoryName];
+
+            if(higherValue < currentSolution){
+                currentSolution = higherValue;
+            }
+        }
+
+        // Preveri tiste, ki so nižje ocenjeni.
+        for(var i=catIndx+1; i < categories.length; i++){
+			
+            var lowerCategoryName = categories[i];
+            var lowerValue = basicScaleObject[lowerCategoryName];
+
+            if(lowerValue > currentSolution){
+                currentSolution = lowerValue;
+            }
+        }
+
+        return currentSolution;
+    }
+
+    this.exprStringFor = function(categoryName, categoryNameValFor, basicScale){
+
+        if(categoryName == categoryNameValFor){
+            return categoryName;
+
+        }
+
+        return parseFloat(basicScale[categoryNameValFor]).myRound(2);
+    }
+
+    this.getIntervalsWith = function(categoryName, basicScale){
+        // Pridobi vse intervale v basicScale-u, ki so v povezavi z kategorijo. 
+        // V nekaterih intervalih je categoryName zgoraj v nekaterih pa spodaj. 
+        // basicScale mora biti sortiran po velikosti.
+
+        var _self = this;
+
+        var intervals = [];
+        var categories = Object.keys(basicScale);
+        var categoryIndex = categories.indexOf(categoryName);
+        
+        if(categoryIndex == -1){
+            throw "V basicScale ni kategorije " + categoryName + "za katero se išče interval!";
+        }
+
+        // Intervali kjer je categoryName spodnja meja.
+        for(var i = 0; i < categoryIndex; i++){
+            var cat = categories[i];
+            intervals.push({
+                upperElement: cat,
+                lowerElement: categoryName
+            });
+        }
+
+        // Intervali kjer je categoryName zgornja meja.
+        for(var i=categoryIndex+1; i < categories.length; i++){
+            var cat = categories[i];
+            intervals.push({
+                upperElement: categoryName,
+                lowerElement: cat
+            });
+        }
+
+        return intervals;
+    }
+
+    this.getAllExpressionsFromConditionTwo = function(categoryName, basicScaleObject, macbethMatrix){
+        // Metoda vrne vse izraze, ki so izpeljani iz pogoja 2.
+
+        // Pogoj dva pravi:
+        // V x,y,w,z € S with (x,y) € Ci and (w,z) € C,:
+        //   i > j => o(x) - o(y) > o(w) - o(z)
+        // Torej: vsi kvadratki v matriki (w,z), ki imajo manjšo vrednost od kvadratka (x,y) -> razlika med vrednosjo razlik basicScale(x) - basicScale(y)
+        // mora biti večja od razlike basicScale(w) - basicScale(z)
+
+        var _self = this;
+
+        var categoryIntervals = getIntervalsWith(categoryName, basicScaleObject);
+
+        var expressions = [];
+        for(var i=0; i < categoryIntervals.length; i ++){
+
+            var interval = categoryIntervals[i];
+            
+            // Ime kategorije ki je v paru v inervalu z kategorijo katere interval išče.
+            var pairName = interval.upperElement;
+            if(pairName == categoryName){
+                pairName = interval.lowerElement;
+            }
+
+            // Razlika, ki jo je uporabnik dodelil med ti dve kategoriji (številska).
+            var macbethDifference = macbethMatrix[interval.upperElement][interval.lowerElement];
+
+            // Pari, ki jim je uporabnik dodelil večjo vrednost kot trenutnemo paru (na intervalu).
+            var uppers = getUpperPairs(macbethMatrix, macbethDifference);
+            // Pari, ki jim je uporabnik dodelil manjšo vrednost kot trenutnemo paru (na intervalu).
+            var lowers = getLowerPairs(macbethMatrix, macbethDifference);
+
+            var el1 = exprStringFor(categoryName, interval.upperElement, basicScaleObject);
+            var el2 = exprStringFor(categoryName, interval.lowerElement, basicScaleObject);
+            //Pridobi izraze z pari, ki jim je uporabnik dodelil manjšo razliko.
+            var expressionLeftPart = el1 + " - " + el2 + " = "
+            for(var j = 0; j < lowers.length; j++){
+                var lower = lowers[j];
+
+                // Če je kategorije za katero se izše interval se na njenih mestih ne pojavi številka ampak ime kot spremenljivka.
+                var el3 = exprStringFor(categoryName, lower.name1, basicScaleObject);
+                var el4 = exprStringFor(categoryName, lower.name2, basicScaleObject);
+
+                var exp = expressionLeftPart + el3 + " - " + el4;
+
+                expressions.push(exp);
+            }
+
+            //Pridobi izraze z pari, ki jim je uporabnik dodelil večjo razliko.
+            var expressionRightPart = " = " + el1 + " - " + el2;
+            for(var j = 0; j < uppers.length; j++){
+                var upper = uppers[j];
+
+                // Če je kategorija za katero se izše interval se na njenih mestih ne pojavi številka ampak ime kot spremenljivka.
+                var el3 = exprStringFor(categoryName, upper.name1, basicScaleObject);
+                var el4 = exprStringFor(categoryName, upper.name2, basicScaleObject);
+
+                var exp = el3 + " - " + el4 + expressionRightPart;
+
+                expressions.push(exp);
+            }
+        }
+
+        return expressions;
+    }
+
+    this.getLowerPairs = function(mapped, value){
+
+        var lowersResult = [];
+        var k1 = Object.keys(mapped);
+
+        for(var i = 0; i < k1.length; i++){
+
+            var kat1Name = k1[i];
+            var kat1 = mapped[kat1Name];
+
+            var k2 = Object.keys(kat1);
+
+            for(var j = 0; j < k2.length; j++){
+
+                var kat2Name = k2[j];
+                var diffValue = mapped[kat1Name][kat2Name];
+
+                if(diffValue < value){
+                    lowersResult.push({
+
+                        name1: kat1Name,
+                        name2: kat2Name,
+                        value: diffValue
+                    });
+                }
+            }
+        } 
+
+        return lowersResult;
+    }
+
+    this.getUpperPairs = function(mapped, value){
+
+        var uppersResults = [];
+        var k1 = Object.keys(mapped);
+		
+        for(var i = 0; i < k1.length; i++){
+
+            var kat1Name = k1[i];
+            var kat1 = mapped[kat1Name];
+            var k2 = Object.keys(kat1);
+
+            for(var j = 0; j < k2.length; j++){
+                var kat2Name = k2[j];
+                var diffValue = mapped[kat1Name][kat2Name];
+				
+                if(diffValue > value){
+                    uppersResults.push({
+                        name1: kat1Name,
+                        name2: kat2Name,
+                        value: diffValue
+                    });
+                }
+            }
+        } 
+
+        return uppersResults;
+    }
+
+    this.basicScaleArrayToObject = function(basicScaleArray){
+
+        var basicScale = {};
+
+        basicScaleArray.forEach(function(el){
+            basicScale[el.name] = el.value;
+        });
+
+        return basicScale;
+    }
+
+    this.solveExpressions = function(expressions, solvingKat, sovlingKatValue){
+
+        var solutions = [];
+
+        expressions.forEach(function(expression){
+            try{
+                var exprRes = algebra.parse(expression).solveFor(solvingKat);
+                var res = exprRes.numer / exprRes.denom;
+
+                solutions.push(res);
+                // console.log(expression);
+            }
+            catch(ex){
+                if(ex.message == "No Solution"){
+                    // console.log(expression  + " !! NO SOLUTION");
+                }
+                else{
+                    throw ex;
+                }
+            }
+        });
+
+        return solutions;
+    }
+
+    mapperSumnikiInterval = {}
+    mapperReverseSumnikiInterval = {}
+
+    this.mapSumnikiInterval = function(basicScale, macbethMatrix){
+        var _self = this;
+
+        // Mapiranje basic scalea.
+        var newBasicScale = [];
+
+        for(var i=0; i < basicScale.length; i++){
+
+            var categoryName = basicScale[i].name;
+
+            var newCodeName = 'x' + i;
+
+            mapperSumnikiInterval[categoryName] = newCodeName;
+            mapperReverseSumnikiInterval[newCodeName] = categoryName;
+
+            newBasicScale.push({
+                name: newCodeName,
+                value: basicScale[i].value
+            });
+        }
+		
+        // Mapiranje macbeth matrike.
+        var newMacbethMatrix = {};
+
+        var macMatxCategoryNames = Object.keys(macbethMatrix);
+        for(var i=0; i < macMatxCategoryNames.length; i++){
+
+            var catOneName = macMatxCategoryNames[i];
+            var macbethRow = macbethMatrix[catOneName];
+            var codeNameCatOne = mapperSumnikiInterval[catOneName];
+
+            newMacbethMatrix[codeNameCatOne] = {};
+
+            var macRowCategoryNames = Object.keys(macbethRow);
+            for(var j=0; j < macRowCategoryNames.length; j++){
+
+                var catTwoName = macRowCategoryNames[j];
+                var codeNameCatTwo = mapperSumnikiInterval[catTwoName];
+
+                newMacbethMatrix[codeNameCatOne][codeNameCatTwo] = macbethMatrix[catOneName][catTwoName];
+            }
+        }
+		
+        return {
+            basicScale: newBasicScale,
+            macbethMatrix: newMacbethMatrix
+        }
+    }
+
+    this.mapBackSumnikiInterval = function(resultIntervals){
+
+        var mappedIntervals = {};
+
+        var catNames = Object.keys(resultIntervals);
+        catNames.forEach(function(el, indx){
+
+           var originalName =  mapperReverseSumnikiInterval[el];
+           mappedIntervals[originalName] = resultIntervals[el];
+        });
+        
+        return mappedIntervals;
     }
 }
 
-function mapBackSumnikiInterval(resultIntervals){
-
-    var mappedIntervals = {};
-
-    var catNames = Object.keys(resultIntervals);
-    catNames.forEach(function(el, indx){
-
-       var originalName =  mapperReverseSumnikiInterval[el];
-       mappedIntervals[originalName] = resultIntervals[el];
-    });
-    
-    return mappedIntervals;
-}
 
 //////////////////////////////////
 //////      DIALOG WEIGHTS
@@ -5031,6 +5218,8 @@ function mapBackSumnikiInterval(resultIntervals){
             width: 600,
             height: 480,
         },
+
+        criterion: {},
 
         _create: function(){
             var _self = this;
@@ -5050,7 +5239,14 @@ function mapBackSumnikiInterval(resultIntervals){
                     $('#btnSaveWeight').jqxButton({width:55});
                     $('#btnSaveWeight').on('click', function(){
 
+                        // Shrani podatke, ki jih je vnesel uporabnik.
                         $('#weightsPanel').weightsPanel('save');
+
+                        // Preračuna normalizirane uteži.
+                        // Prvo preračuna na nivoju levela. (Na vozliščih, ki jim je uporabnik nastavljal uteži)
+                        // Potem pa končno utež za analizo na celotnem poddreveseu vozlišča.
+                        model.normalizeLevelWeightsOnNode(_self.criterion);
+                        model.normalizeFinalWeightRecursivelyOnChildrenOf(_self.criterion);
 
                         $('#dialogWeight').jqxWindow('close');
                     });
@@ -5059,22 +5255,18 @@ function mapBackSumnikiInterval(resultIntervals){
                     $('#btnCloseWeight').on('click', function(){
                          $('#dialogWeight').jqxWindow('close');
                     });
-
-                    // var criteria = _self.getAllCireteriaUnder(currentD)
-
-                    // $('#weightsPanel').weightsPanel({
-                    //     panelSource: criteria
-                    // });
                 },
             });
         },
 
-        open: function(){
+        open: function(criterion){
+            var _self = this;
 
-            this._refreshDialog();
+            _self.criterion = criterion;
+
+            _self._refreshDialog();
 
             $("#dialogWeight").jqxWindow('open');
-
         },
 
         close: function(){
@@ -5084,9 +5276,12 @@ function mapBackSumnikiInterval(resultIntervals){
         },
 
         _refreshDialog: function(){
+            var _self = this;
 
-           $('#weightsPanelLayoutDiv').html('');
-            var criteria = this.getAllCireteriaUnder(currentD);
+            $('#weightsPanelLayoutDiv').html('');
+            
+            var criteria = _self.getAllCireteriaUnder(_self.criterion);
+            
 
             $('#weightsPanel').weightsPanel({
                 panelSource: criteria
@@ -5095,11 +5290,10 @@ function mapBackSumnikiInterval(resultIntervals){
         },
 
         getAllCireteriaUnder: function(node){
-            // Metoda pridobi kriterije oz. vozlišča, ki jih v podanem vozlišču utežujemo. Metoda mora 
-            // vrniti toliko kriterijev kot ima potomcev na prvem nivoju.
+            // Metoda pridobi vozlišča, ki jih v podanem vozlišču utežujemo. 
 
-            var criteria = [];
-            
+            var _self = this;
+
             if(typeof(node.children) == 'undefined'){
 
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
@@ -5108,38 +5302,18 @@ function mapBackSumnikiInterval(resultIntervals){
                     yesAction: function(){}
                 })
 
-                // MR: Tole metanje izjem je potrebno pri vsekm messag-u kjer nočem, da se koda izvaja naprej...
                 throw 'Vozlišče ' + node.name + ' nima otrok!';
             }
-            for(var i = 0; i < node.children.length; i++){
-                var child = node.children[i];
 
-                // weightObject je objekt, ki vsebuje dva objekta: kriterij ( oz. vozl.) katerega utež nas zanima, ter 
-                // dejanski kriterij, katerega utež je pomembna - to je najtežji oz. najpomembnejši potomec vozlišča.
-                var weightObject = {};
-
-                weightObject.weightedNode = child
-
-                if(child.type == "criterion"){
-
-                    if(!child.weight){
-                        child.weight = 0;
-                    }
-
-                    weightObject.weightedCriteria = child
-                }   
-                else if(child.type == "node"){
-
-                    weightObject.weightedCriteria = window.model.getMostImportantCriteriaOfNode(child, 0);
-                    
-                }
-
-                criteria.push(weightObject)
-            }
-
-            return criteria;
-        }
-
+            var panelSource = [];
+            var criteriaForWieghting = _self.criterion.children;
+            criteriaForWieghting.forEach(function(el, indx){
+                panelSource.push({
+                    weightedCriteria: el
+                });
+            });
+            return panelSource;
+        },
     });
 })(jQuery);
 
@@ -5151,6 +5325,10 @@ function mapBackSumnikiInterval(resultIntervals){
 (function( $ ){
 
     $.widget('myWidget.weightsPanel', {
+
+        options: {
+            panelSource: []
+        },
 
         _create: function(){
             
@@ -5169,47 +5347,20 @@ function mapBackSumnikiInterval(resultIntervals){
             for(var i = 0; i < this.options.panelSource.length; i++){
                 var obj = this.options.panelSource[i];
 
-                if(obj.weightedCriteria.weight == 'undefined'){
-                    obj.weightedCriteria.weight = 0;
+                if(typeof(obj.weightedCriteria.userWeight) == 'undefined'){
+                    obj.weightedCriteria.userWeight = 0;
                 }
-
-                var minVal = typeof obj.weightedCriteria.minValue === 'undefined' ? 0 : obj.weightedCriteria.minValue;
-                var maxVal = typeof obj.weightedCriteria.maxValue === 'undefined' ? 0 : obj.weightedCriteria.maxValue;
 
                 var pnlContent = "" + 
                     "<div class='weightsPanelContent'>" +
                     "<div class='weightPanelName'>" +
-                        "<div class='weightedCriteriaText'>C: " + this._abbreviateForName(obj.weightedCriteria.name) + "</div>" +
-                        "<div class='weightedNodeText'>N: " + this._abbreviateForName(obj.weightedNode.name) + "</div>" +
+                        "<div class='weightedCriteriaText'>Criterion:</div>" +
+                        "<div class='weightedNodeText'>N: " + this._abbreviateForName(obj.weightedCriteria.name) + "</div>" +
                     "</div>" +
                     "<div class='weightPanelSwing'>" +
-                        "<table class='weightPanelSwingTable'>" +
-                            "<tr>" +
-                                "<td>" +
-                                    "Min" +
-                                "</td>" +
-                                "<td>" +
-                                    "-" +
-                                "</td>" +
-                                "<td>" +
-                                    "Max" +
-                                "</td>" +
-                            "</tr>" +
-                            "<tr>" +
-                                "<td align='center'>" +
-                                    minVal +
-                                "</td>" +
-                                "<td>" +
-                                    "-" +
-                                "</td>" +
-                                "<td>" +
-                                    maxVal +
-                                "</td>" +
-                            "</tr>" +
-                        "</table>" +
                     "</div>" +
                     "<div class='weightPanelWeight'>" +
-                            obj.weightedCriteria.weight +
+                            obj.weightedCriteria.userWeight +
                     "</div>" +
                     "<div class='weightPanelSliderHolder slider-demo-slider-container'>" +
                         "<div class='weightSlider' class='weightPanelSlider'></div>" +
@@ -5222,7 +5373,7 @@ function mapBackSumnikiInterval(resultIntervals){
 
             // Nastavitev in pridobitev končne širine dodanih panelov za nastaljanje uteži.
             var widthOfweightsPanelContent = parseInt($(".weightsPanelContent").css("width"));
-            $('#weightsPanelLayoutDiv').css('width', (i * widthOfweightsPanelContent) + (i*4));
+            $('#weightsPanelLayoutDiv').css('width', (i * widthOfweightsPanelContent) + (i * 4));
             var totalWidth = $('#weightsPanelLayoutDiv').width();
 
             var widthOfScrollPanel = $("#weightsPanel").width();
@@ -5231,14 +5382,10 @@ function mapBackSumnikiInterval(resultIntervals){
             // Kadar je koncna sirina manjsa, jih z pomocjo margina postavi v center po horizontali. V nasprotnem primeru zmanjsa visino zaradi scrollbara.
             if ( totalWidth < widthOfScrollPanel ){
                 var diff = widthOfScrollPanel - totalWidth;
-                // $('#weightsPanel').find('.weightsPanelContent:first')
-                //     .css("margin-left", (diff / 2))
-
                 $('#weightsPanelLayoutDiv').css('margin-left', (diff / 2))
             }
             else{
                 $('#weightsPanelLayoutDiv').css('height', 'calc(100% - 23px)')
-
             }
 
             $('.weightedCriteriaText').css('width', 'widthOfweightsPanelContent');
@@ -5247,7 +5394,7 @@ function mapBackSumnikiInterval(resultIntervals){
             var sliders = $('.weightSlider').jqxSlider({
                 orientation: 'vertical',
                 width: 25,
-                height: 150,
+                height: 220,
                 min: 0,
                 max: 100,
                 showTicks: false,
@@ -5259,11 +5406,10 @@ function mapBackSumnikiInterval(resultIntervals){
             for(var i = 0; i < sliders.length; i++){
                 var slider = sliders[i];
                 var obj = this.options.panelSource[i];
-                var value = obj.weightedCriteria.weight;
+                var value = obj.weightedCriteria.userWeight;
 
                 $(slider).jqxSlider('value', value);
             }
-
 
             $('.weightSlider').on('change', function(event){
                 var textDiv = $(event.target.parentNode.parentNode.getElementsByClassName("weightPanelWeight"));
@@ -5285,10 +5431,10 @@ function mapBackSumnikiInterval(resultIntervals){
             for(var i = 0; i < this.options.panelSource.length; i++){
                 var obj = this.options.panelSource[i];
                 var slider = $(sliders[i]);
-                obj.weightedCriteria.weight = parseInt(slider.jqxSlider('value'));
-
+                obj.weightedCriteria.userWeight = parseInt(slider.jqxSlider('value'));
             }
-        }
+        },
+
     });
 })(jQuery);
 
@@ -5865,19 +6011,6 @@ function refreshContribution(){
         contributionData.push(criteriatemp);
     }
     
-    
-   
-            //MR:  Spodnji if else sem zakomentiral, ker je kazalo kot da si ga izbrisal, nisem bil prepričan... Preveri....
-			
-            //if(spiderFull){
-            //    $('#spiderVariants').jqxChart({ _renderData: new Array() });
-            //   $('#spiderVariants').jqxChart({ source: spiderData });
-            //    $('#spiderVariants').jqxChart('refresh');
-            //}else{
-            //   $("#spiderVariants").jqxChart(spiderSettings);
-            //}
-            
-			
             //$("#mapVariants").jqxChart(mapSettings);
             $("#contributionVariants").jqxChart(contributionSettings);
     
