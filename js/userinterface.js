@@ -57,6 +57,8 @@ $(document).ready(function(){
         $('#dialogValFuncLinear').DialogLinear({autoOpen: false});
         $('#dialogValFuncDiscrete').DialogDiscrete({autoOpen: false});
         $('#dialogWeight').DialogWeights({autoOpen: false});
+        $('#dialogSaveModel').DialogSaveModel();
+
         $('#macbethIntervalTooltip').tooltipMACBETHInterval({});
 
         // YesNo DialogBox intialization
@@ -98,7 +100,7 @@ $(document).ready(function(){
                         tool.append(btnSave);
                         btnSave.jqxButton({ height: 16 });
                         btnSave.on('click', function(){
-                            model.saveModel();
+                             $('#dialogSaveModel').DialogSaveModel('open');
                         });
                         break;
                     case 2:
@@ -5572,9 +5574,107 @@ function MacbethIntervalCalculator(){
 })(jQuery);
 
 
+//////////////////////////////////
+//////    DIALOG SHRANJEVANJA MODELA
+//////////////////////////////////
+
+(function( $ ){
+
+    $.widget("myWidget.DialogSaveModel", {
+
+        dialogID: "",
+
+        options:{
+            width: 400,
+            height: 190
+        },
+
+        _create: function(){
+            var _self = this;
+
+            _self.dialogID =  "#" + $(this.element).prop('id');
+
+            var height = this.options.height;
+            var width = this.options.width;
+            this.element.jqxWindow({
+                height: height,
+                width: width,
+                resizable: false,
+                isModal: true,
+                autoOpen: false,
+                draggable: true,
+                position: 'center',
+                initContent: function(){
+                    // Inicializacija kontrol dialoga.
+                    $('#btnSaveModelYes').jqxButton({
+                        width: 55,
+                    });
+                    $('#btnSaveModelNo').jqxButton({
+                        width: 55,
+                    });
+                    $("#tfModelName").jqxInput({height: 19, width: 250});
+
+                    $('#formSaveModel').jqxValidator({
+                        rules: [
+                            { input: '#tfModelName', message: 'Field is required!', action: 'keyup, blur', rule: 'required' }
+                        ]
+                    });
+
+                    $('#formSaveModel').on('validationSuccess', function(event){
+                        
+                        model.saveModel($("#tfModelName").jqxInput('val'));
+                        _self.element.jqxWindow('close');
+                    });
+
+                    $('#btnSaveModelYes').on('click', function(events){
+                        $('#formSaveModel').jqxValidator('validate');
+                    });
+                    $('#btnSaveModelNo').on('click', function(events){
+                        _self.element.jqxWindow('close');
+                    });
+
+                    _self._refreshDialog();
+                }
+            });
+
+            // Odprtje dialoga ob kreaciji.
+            if(_self.options.autoOpen){
+                _self.open();
+            }
+        },
+
+        open: function(){
+            // Dialog odpre z podanimi lastnostmi kot options.
+            var _self = this;
+
+            _self._refreshDialog();
+
+            _self._moveToCenter();
+
+            _self.element.jqxWindow('open');
+        },
+
+        _refreshDialog: function(){
+            $("#tfModelName").jqxInput('val', '');
+        },
+
+        _moveToCenter: function(){
+            var _self = this;
+
+            $(_self.dialogID).jqxWindow({        
+                position: {
+                    x: ($(document).width() / 2) - (_self.options.width / 2),
+                    y: (($(window).height()/2) - (_self.options.height / 2) + $(document).scrollTop())
+                }
+            });
+        },
+
+    });
+})(jQuery);
+
 
 //////////////////////////////////
-//////      POTREBNO ZDRUŽITI !!!!
+//////      ANALIZA
 //////////////////////////////////
 
 /*osvezi tab z analizami*/

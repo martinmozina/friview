@@ -689,8 +689,9 @@ function Model(){
         window.valueTree.recalcData(this._criteria);
     }
 
-    this.saveModel = function(){
-        var filename = "model.json";
+    this.saveModel = function(modelName){
+        
+        var filename = modelName += ".json";
         var cc = this.getModelString();
         var bl = new Blob([cc], {type: "text/plain;charset=utf-8"});
         saveAs(bl, filename);
