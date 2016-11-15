@@ -511,7 +511,12 @@ function Model(){
         });
 
         children.forEach(function(el, indx){
-            el.levelNormalizedWeight = parseFloat(el.userWeight) / userWeightSum;
+            if(userWeightSum == 0){
+                el.levelNormalizedWeight = 0;
+            }
+            else{
+                el.levelNormalizedWeight = parseFloat(el.userWeight) / userWeightSum;
+            }
         });
     }
 
