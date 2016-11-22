@@ -1,6 +1,6 @@
 var normalizedMiniMax;
 
-function getCriteriaWeight(name){
+function getCriteriaWeightOLD(name){
     //console.log("klic getCriteriaWeight za name = " + name);
     var criteria = model.getCriteriaToList();
     
@@ -10,6 +10,17 @@ function getCriteriaWeight(name){
             return criteria[c].weight / 100;
         }
     }
+}
+
+function getCriteriaWeight(name){
+    var criteria = model.getCriteriaToList();
+    for(var c in criteria){
+        if(name == criteria[c].name){
+            return criteria[c].finalNormalizedWeight;
+        }
+    }
+
+    return null;
 }
 
 
@@ -573,7 +584,7 @@ function lexicographicOrder2(){
 }
 
 
-function normalizeDataWithNodes(){
+function normalizeDataWithNodesOLD(){
 	
 	
 	//var ndwnData = clone(normalizedDataWithWeights);
@@ -636,6 +647,33 @@ function normalizeDataWithNodes(){
 	
 	//return window.model.getNodesToList();
 }
+
+function normalizeDataWithNodes(){
+    normalizedDataWithNodes = clone(normalizedDataWithWeights);
+
+    var nodes = window.model.getNodesToList();
+
+    for(var i = 0; i < nodes.length; i++){
+        var node = nodes[i];
+
+        if(node.type == "node"){
+            var entry = {};
+            entry.type = node.name;
+
+            for(var k = 0; k < Object.keys(window.model.getVariants()).length; k++){
+            	var varName = "norm_var"+k;
+            	var varName2 = "var"+k;
+
+                entry[varName2] = node[varName];
+
+            }
+
+            normalizedDataWithNodes.push(entry);
+        }
+    }
+
+}
+
 
 function normalizeDataWithNodesWW(){//WW -> without weights
 	
@@ -785,14 +823,23 @@ function normirajUtezi(){
 						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] + (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) * (parseFloat(ndwnNode.normWeight) / 100));
 					}*/
 					
-					if(ndwnParent[ndwnVarName] == null){
+					/*if(ndwnParent[ndwnVarName] == null){
 						ndwnParent[ndwnVarName] = (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) 
 							* (parseFloat(ndwnNode.weight))) / ndwnParent.weight;
 					}else{
 						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] 
 							+ ((getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData) 
 							   * (parseFloat(ndwnNode.weight))) / ndwnParent.weight);
+					}*/
+                    if(ndwnParent[ndwnVarName] == null){
+						ndwnParent[ndwnVarName] = (getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData)
+							* (parseFloat(ndwnNode.finalNormalizedWeight))) / ndwnParent.finalNormalizedWeight;
+					}else{
+						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName]
+							+ ((getValueFromNormalizedData(ndwnNode.name, ndwnVarName.substring(5), normalizedData)
+							   * (parseFloat(ndwnNode.finalNormalizedWeight))) / ndwnParent.finalNormalizedWeight);
 					}
+
 					
 				}		
 			
@@ -821,11 +868,18 @@ function normirajUtezi(){
 							   * (parseFloat(ndwnNode.weight))) / ndwnParent.weight);
 					}*/
 					//4.
-					if(ndwnParent[ndwnVarName] == null){
+					/*if(ndwnParent[ndwnVarName] == null){
 						ndwnParent[ndwnVarName] = (ndwnNode[ndwnVarName] * ndwnNode.weight) / ndwnParent.weight;
 					}else{
 						ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] +	((ndwnNode[ndwnVarName] * ndwnNode.weight) / ndwnParent.weight);	
-					}
+					}*/
+					//5.
+					if(ndwnParent[ndwnVarName] == null){
+                    	ndwnParent[ndwnVarName] = (ndwnNode[ndwnVarName] * ndwnNode.finalNormalizedWeight) / ndwnParent.finalNormalizedWeight;
+                    }else{
+                    	ndwnParent[ndwnVarName] = ndwnParent[ndwnVarName] +	((ndwnNode[ndwnVarName] * ndwnNode.finalNormalizedWeight) / ndwnParent.finalNormalizedWeight);
+                    }
+
 					
 				}	
 			}

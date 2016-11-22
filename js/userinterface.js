@@ -5943,26 +5943,35 @@ function refreshMap(){
     mapData = [];
     mapSettings.seriesGroups[0].series = [];
     mapSettings.seriesGroups[1].series = [];
-    
+    var yPrefix = "norm_var";
+    var xPrefix = "norm_var";
+
+
     var dropX = document.getElementById("mapDropX");
     var xIndex = dropX.options[dropX.selectedIndex].value;
     
     var dropY = document.getElementById("mapDropY");
     var yIndex = dropY.options[dropY.selectedIndex].value;
-    
-    var mapXAttr = normalizedDataWithNodes[xIndex]; 
-    var mapYAttr = normalizedDataWithNodes[yIndex]; 
+
+
+    var mapXAttr = normalizedDataWithNodes[xIndex];
+    var mapYAttr = normalizedDataWithNodes[yIndex];
     
 	var xName = dropX.options[dropX.selectedIndex].innerText;
 	var yName = dropY.options[dropY.selectedIndex].innerText;
-	
+
+	//var mapXAttr = window.model.getNode(xName);
+	//var mapYAttr = window.model.getNode(yName);
+
 	var criteriaNames = window.model.getCriteriaNamesToList();
 	
 	if(criteriaNames.indexOf(xName) != -1){
+	    xPrefix = "var";
 		mapXAttr = normalizedData[xIndex];
 	}
 	
 	if(criteriaNames.indexOf(yName) != -1){
+	    yPrefix = "var";
 		mapYAttr = normalizedData[yIndex];
 	}	
 	
@@ -5981,7 +5990,9 @@ function refreshMap(){
     //var yMaxInd = 0;
     
     for(var m = 0; m < Object.keys(mapYAttr).length -1; m++){
-        var ind = "var"+m;
+        /*var indX =  xPrefix + m;//"var"+m;
+        var indY =  yPrefix + m;//"var"+m;*/
+        var ind = "var" + m;
         /*if(mapYAttr[ind] > yMax){
             yMax = mapYAttr[ind];
             //yMaxInd = m;
@@ -6020,7 +6031,7 @@ function refreshMap(){
         maptemp[index] = mapYAttr[index];
         
         
-       /* if((mapXAttr[index] >= yMaxX && mapYAttr[index] >= xMaxY 
+       /* if((mapXAttr[index] >= yMaxX && mapYAttr[index] >= xMaxY
            &&  mapXAttr[index] <= xMaxX && mapYAttr[index] <= yMaxY)
            || index == yMaxInd || index == xMaxInd){
             //mapXAttr[index] != yMax && mapYAttr[index] != yMax && a < yMaxInd
@@ -6068,7 +6079,8 @@ function refreshMap(){
             });
         
         mapSettings.seriesGroups[1].series.push(mapser);
-        
+        mapSettings.xAxis.maxValue = xMaxX + 10;
+        mapSettings.valueAxis.maxValue = yMaxY + 10;
         if(a ==  0){
             mapser2.dataField = "BackFill";
             mapser2.displayText = "Ozadje";
@@ -6163,7 +6175,7 @@ function refreshSensitivity(){
 		}
 		
 		var attribute = model.getNode(attributeName);
-		attrWeight = attribute.weight / 100;
+		attrWeight = attribute.finalNormalizedWeight;
 		for(var i = 0; i < Object.keys(variants).length; i++){
 			var vreVar = "norm_var"+ i;
 			seznamVariantVre.push(attribute[vreVar]);
@@ -6413,7 +6425,7 @@ function initializeDataAndSettingsContainers(){
                     dataField: 'Atr1',
                     valuesOnTicks: true,
                     minValue: 0,
-                    maxValue: 110,
+                    //maxValue: 110,
                     unitInterval: 10,
                     title: {text: "Teza"}
                     
@@ -6421,7 +6433,7 @@ function initializeDataAndSettingsContainers(){
                 valueAxis:
                 {
                     minValue: 0,
-                    maxValue: 110,
+                    //maxValue: 110,
                     unitInterval: 10,
                     title: {text: 'RAM<br>'},
                     labels: {
@@ -7127,7 +7139,7 @@ function normalizedGrid(){
 	for(var crit in criteriaNameList){	
 		var column = {};	
 		column.text = criteriaNameList[crit];
-		column.weight =  getCriteriaWeight(criteriaNameList[crit]);
+		column.weight =  parseFloat(getCriteriaWeight(criteriaNameList[crit])).toFixed(2);
 		ngTempCriteria.push(column);
 		/*var column = {};	
 		column.text = criteriaNameList[crit] + "[" + getCriteriaWeight(criteriaNameList[crit]) + "]";
