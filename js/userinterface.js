@@ -5981,7 +5981,7 @@ function refreshMap(){
     
     mapSettings.xAxis.title.text = mapXAttr.type;
     mapSettings.valueAxis.title.text = mapYAttr.type;
-    mapSettings.description = ((mapXAttr.type).concat(" VS ")).concat(mapYAttr.type);
+    //mapSettings.description = ((mapXAttr.type).concat(" VS ")).concat(mapYAttr.type);
     
     var yMax = 0;
     var xMax = 0;
@@ -6413,7 +6413,7 @@ function initializeDataAndSettingsContainers(){
             // prepare jqxChart settings
     mapSettings = {
                 title: "Map analiza",
-                description: "Teza VS ram",
+                description: "",
                 enableAnimations: true,
                 showLegend: true,
                 padding: { left: 5, top: 5, right: 5, bottom: 5 },
@@ -6554,8 +6554,8 @@ function initializeDataAndSettingsContainers(){
 	/* chart settings */
 	sensitivitySettings = {
 		source: /*sensitivityDataAdapter,*/sensitivityData,
-		title: "My Chart Title",
-		description: "My Chart Description",
+		title: "Sensitivity Up",
+		description: "",
 		padding: {
 			left: 5,
 			top: 5,
@@ -6944,8 +6944,95 @@ function estimatedValueVariants(){
     //$('#estimatedValueVariants').jqxChart(estimatedValueSettings); ZAKOMENTIRANO KER NE RIŠEMO VEČ GRAFA POTREBUJEJO SE SAMO PODATKI
 }
 
-
 function increaseDecrease(){ console.log("INCREASE/DECREASE");
+    var preferred = getMaxOfArray(expectedValues, "I");
+    var prefEV = expectedValues[preferred];
+    var increaseDecreaseData = [];
+
+    var criteria = window.model.getCriteriaNamesToList();
+
+    for(var i = 0; i < criteria.length; i++){
+        var criteriaName = criteria[i];
+        var criteriaWeight = getCriteriaWeight(criteriaName) * 100;
+        var row = {}
+        row.criteria = criteriaName;
+        row.decreaseKor = "";
+        row.candidateDec = "";
+        row.increaseKor = "";
+        row.candidateInc = "";
+        var criteriaSens = calculateSensitivityDown(criteriaName);
+
+        for(var j = 0; j < criteriaSens.length; j++){
+            var incDec = criteriaSens[j];
+
+            if(incDec.position == "left"){
+                row.decreaseKor = Math.ceil(Math.abs(incDec.x - criteriaWeight));
+                row.candidateDec = getVariantNameByIndex((incDec.vara).substring(3));
+            }else if(incDec.position == "right"){
+                row.increaseKor = Math.ceil(Math.abs(incDec.x - criteriaWeight));
+                row.candidateInc = getVariantNameByIndex((incDec.vara).substring(3));
+            }
+        }
+        increaseDecreaseData.push(row);
+    }
+
+
+	 increaseDecreaseDataGlobal = increaseDecreaseData;
+
+     var source =
+            {
+                localdata: increaseDecreaseData,
+                datatype: "array"
+            };
+            var cellsrenderer = function (row, columnfield, value, defaulthtml, columnproperties) {
+                if (value < 50) {
+                    return '<div style="float: ' + columnproperties.cellsalign + '; color: green;">' + value + '</div>';
+                }
+                else {
+                    return '<span style="color: red; background-color:blue;">' + value + '</span>';
+                }
+            }
+
+			var cellsrendererText = function (row, columnfield, value, defaulthtml, columnproperties) {
+                    return '<div style="text-align:center;">' + value + '</div>';
+            }
+
+			var cellclassa = function (row, columnfield, value) {
+				if(value == ""){
+					return "x";
+				}
+
+                if (value <= 5) {
+                    return 'red';
+                }
+                else if (value > 5 && value < 15) {
+                    return 'yellow';
+                }
+                else return 'green';
+            }
+
+            $("#increaseDecreaseVariants").jqxGrid(
+            {
+                width: 640,
+                source: source,
+                pageable: true,
+                autoheight: true,
+				altrows: true,
+                columns: [
+                  { text: 'Kriterij', datafield: 'criteria', width: 100 },
+                  { text: 'Decrease k', datafield: 'candidateDec', width: 100, cellsrenderer: cellsrendererText},
+                  { text: 'Decrease', datafield: 'decreaseKor', width: 150,  /*cellsrenderer: cellsrenderer,*/cellclassname: cellclassa, align:'center' },
+                  { text: 'Inrease', datafield: 'increaseKor', width: 150,  /*cellsrenderer: cellsrenderer*/cellclassname: cellclassa },
+					{ text: 'Increase k', datafield: 'candidateInc', width: 100, cellsrenderer: cellsrendererText },
+                ]
+            });
+
+
+
+
+}
+
+function increaseDecreaseOLD(){ console.log("INCREASE/DECREASE");
     var preferred = getMaxOfArray(expectedValues, "I");
     var prefEV = expectedValues[preferred];
     var increaseDecreaseData = [];

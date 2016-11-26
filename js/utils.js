@@ -1153,3 +1153,159 @@ function uteziVProcente(array){
 	
 	return out;
 }
+
+function novaKoristnost(prefferedValue, variantValue, attrValue, weight){
+    var difference = prefferedValue - variantValue;
+    var attrKorist = attrValue * weight;
+
+    return attrKorist + difference;
+}
+
+function calculateSensitivityDown(pAttrName){
+
+	var variants = window.model.getVariants();
+
+	var seznamVariantIzr = [];
+	var seznamVariantVre = [];
+
+
+    var xIndex = window.model.getCriteriaNamesToList().indexOf(pAttrName);
+    var attributeName = pAttrName
+
+	var attrWeight = 0;
+
+	if(model.getNode(attributeName).type == "criterion"){
+
+		var attribute = normalizedData[xIndex];
+		attrWeight = getCriteriaWeight(attribute.type);
+
+
+		for(var a = 0; a < Object.keys(attribute).length -1; a++){
+			var v = "var"+a;
+			var variantaIzracun = 0;
+
+			for(var b = 0; b < normalizedData.length; b++){
+				var currentCriteria = normalizedData[b];
+
+				var currW = getCriteriaWeight(currentCriteria.type) / 100;
+				variantaIzracun = variantaIzracun + (currW * currentCriteria[v]);
+			}
+
+			seznamVariantIzr.push(variantaIzracun);
+			seznamVariantVre.push(attribute[v]);
+		}
+
+	}else{
+		var root = model.getRootNode();
+
+		for(var i = 0; i < Object.keys(variants).length; i++){
+			var izrVar = "var"+ i;
+			seznamVariantIzr.push(root[izrVar] / 100);
+		}
+
+		var attribute = model.getNode(attributeName);
+		attrWeight = attribute.finalNormalizedWeight;
+		for(var i = 0; i < Object.keys(variants).length; i++){
+			var vreVar = "norm_var"+ i;
+			seznamVariantVre.push(attribute[vreVar]);
+		}
+	}
+
+	console.log("seznamVariantIzr: " + seznamVariantIzr);
+	console.log("seznamVariantVre: " + seznamVariantVre);
+    var startData = {Label:0};
+    var endData = {Label:100};
+	var midData = {Label:attrWeight*100};
+	var midData2 = {Label:attrWeight*100};
+	var leftSens = {Label:null,right:null,trenutnaVred:null};
+	var leftSens2 = {Label:null,left: 0, right:null,trenutnaVred:null};
+	var rightSens = {Label:null,left:null,trenutnaVred:null};
+	var rightSens2 = {Label:null,right: 0, left:null,trenutnaVred:null};
+
+
+    for(var c = 0; c < seznamVariantIzr.length; c++){
+        var v = "var"+c;
+
+		startData[v] = getSensitivityStartY(100, seznamVariantVre[c], attrWeight*100, seznamVariantIzr[c]*100);// * 100;
+
+        endData[v] = seznamVariantVre[c];
+
+		midData[v] = seznamVariantIzr[c] * 100;
+		midData2[v] = null;
+		leftSens[v] = 0;
+		leftSens2[v] = null;
+		rightSens[v] = 0;
+		rightSens2[v] = null;
+
+		midData["trenVred"] = 100;
+		midData2["trenVred"] = 0;
+		startData["trenVred"] = null;
+		endData["trenVred"] = null;
+
+		startData["left"] = null;
+		midData["left"] = null;
+		midData2["left"] = null;
+		endData["left"] = null;
+
+		startData["right"] = null;
+		midData["right"] = null;
+		midData2["right"] = null;
+		endData["right"] = null;
+
+		//sensitivityData.push({Label:attrWeight*100, trenVred: seznamVariantIzr[c] * 100})
+
+        var sensser = { dataField: "a", displayText: "b"};
+         sensser.dataField = v;
+         sensser.displayText = rawVariants[c].Option;
+         //sensser.opacity = 0.3;
+        //sensitivitySettings.seriesGroups[0].series.push(sensser);
+    }
+
+	var sensMax = 0;
+	var sensIntersectionsArray = [];
+	for(var d = 0; d < Object.keys(window.model.getVariants()).length; d++){
+		var vv = "var" + d;
+		if(midData[vv] > sensMax){
+			sensMax = midData[vv];
+		}
+	}
+
+	for(var d = 0; d < Object.keys(window.model.getVariants()).length; d++){
+		var vvv = "var" + d;
+		if(midData[vvv] == sensMax){
+			var sensStartEndData = [];
+			sensStartEndData.push(startData);
+			sensStartEndData.push(endData);
+
+
+			sensIntersectionsArray = findSensitivityIntersections(vvv, attrWeight * 100, sensStartEndData);
+			break;
+		}
+	}
+
+	for(var d = 0; d < sensIntersectionsArray.length; d++){
+		if(sensIntersectionsArray[d].position == "left"){
+			leftSens.left = 100;//sensIntersectionsArray[d].y;
+			leftSens.Label = sensIntersectionsArray[d].x;
+			leftSens2.Label = sensIntersectionsArray[d].x;
+		}
+
+		if(sensIntersectionsArray[d].position == "right"){
+			rightSens.right = 100;//sensIntersectionsArray[d].y;
+			rightSens.Label = sensIntersectionsArray[d].x;
+			rightSens2.Label = sensIntersectionsArray[d].x;
+		}
+	}
+
+    return sensIntersectionsArray;
+}
+
+function getVariantNameByIndex(index){
+    var variants = window.model.getVariantsToList();
+
+    for(var i = 0; i < variants.length; i++){
+        if(i == index){
+            return variants[i].Option;
+        }
+    }
+}
