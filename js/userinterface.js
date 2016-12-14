@@ -197,16 +197,16 @@ $(document).ready(function(){
             var tabTitle = $('#tabsContent').jqxTabs('getTitleAt', event.args.item);
 
             switch(tabTitle){
-                case 'Value tree' :
+                case 'Odločitveno drevo' :
 
                     break;
 
-                case 'Variants' :
+                case 'Variante' :
                     gridVariants.rebuildGrid();
     				
                     break;
 
-                case 'Analyse' :
+                case 'Analiza' :
                     
                     // Kadar je model neveljaven ne napreduje na tab analize.
                     if(this.validationMessage != 'OK'){
@@ -7020,10 +7020,10 @@ function increaseDecrease(){ console.log("INCREASE/DECREASE");
 				altrows: true,
                 columns: [
                   { text: 'Kriterij', datafield: 'criteria', width: 100 },
-                  { text: 'Decrease k', datafield: 'candidateDec', width: 100, cellsrenderer: cellsrendererText},
-                  { text: 'Decrease', datafield: 'decreaseKor', width: 150,  /*cellsrenderer: cellsrenderer,*/cellclassname: cellclassa, align:'center' },
-                  { text: 'Inrease', datafield: 'increaseKor', width: 150,  /*cellsrenderer: cellsrenderer*/cellclassname: cellclassa },
-					{ text: 'Increase k', datafield: 'candidateInc', width: 100, cellsrenderer: cellsrendererText },
+                  { text: 'Kandidat -', datafield: 'candidateDec', width: 100, cellsrenderer: cellsrendererText, align:'center'},
+                  { text: 'Zmanjšanje uteži', datafield: 'decreaseKor', width: 150,  /*cellsrenderer: cellsrenderer,*/cellclassname: cellclassa, align:'center' },
+                  { text: 'Povečanje uteži', datafield: 'increaseKor', width: 150,  /*cellsrenderer: cellsrenderer*/cellclassname: cellclassa, align:'center' },
+					{ text: 'Kandidat +', datafield: 'candidateInc', width: 100, cellsrenderer: cellsrendererText, align:'center' },
                 ]
             });
 
@@ -7344,7 +7344,7 @@ function resetContainersToDefault(){
 +"                           <div>"
 +"                                <div id='window1' style='height: 600px;'>"
 +"                                    <div>"
-+"                                        Spider chart"
++"                                        Zvezdni diagram"
 +"                                    </div>"
 +"                                    <div style='overflow: hidden;'>"
 +""                                       
@@ -7366,7 +7366,7 @@ function resetContainersToDefault(){
 +"                            <div>-->"
 +"                                <div id='window3' style='height: 600px'>"
 +"                                    <div>"
-+"                                        Contribution"
++"                                        Prispevek k koristnosti"
 +"                                    </div>"
 +"                                    <div style='overflow: hidden;'>"
 +"                                        <div id='contributionVariants' style='width: 640px; height: 480px'></div>"
@@ -7382,7 +7382,7 @@ function resetContainersToDefault(){
 +"                                </div>"
 +"                                <div id='window5' style='height: 600px;'>"
 +"                                    <div>"
-+"                                        Sensitivity"
++"                                        Občutljivost navzgor"
 +"                                    </div>"
 +"                                    <div style='overflow: hidden;'>"
 +"                                       <div id='sensitivityVariants' style='width: 640px; height: 480px'></div>"
@@ -7391,7 +7391,7 @@ function resetContainersToDefault(){
 +"                                </div>"                                
 +"                                <div id='window9' style='height: 600px;'>"
 +"                                    <div>"
-+"                                        Kaj če..."
++"                                        Občutljivost navzdol ali 'Kaj če...'"
 +"                                    </div>"
 +"                                    <div style='overflow: hidden;'>"
 +"                                       <div id='increaseDecreaseVariants' style='width: 640px; height: 480px'></div>"
