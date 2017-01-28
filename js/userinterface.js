@@ -6170,7 +6170,7 @@ function refreshSensitivity(){
 		var root = model.getRootNode();
 		
 		for(var i = 0; i < Object.keys(variants).length; i++){
-			var izrVar = "var"+ i;
+			var izrVar = "norm_var"+ i;
 			seznamVariantIzr.push(root[izrVar] / 100);
 		}
 		
@@ -6474,7 +6474,7 @@ function initializeDataAndSettingsContainers(){
                 ];
             // prepare jqxChart settings
     contributionSettings = {
-                title: "Contribution",
+                title: "Prispevek k koristnosti",
                 description: "",
                 enableAnimations: true,                
                 showLegend: true,
@@ -6502,7 +6502,7 @@ function initializeDataAndSettingsContainers(){
                     unitInterval: 20,
                     //minValue: 0,
                     //maxValue: 300,
-                    title: { text: 'Criteria contribution' },
+                    title: { text: 'Prispevek posameznega kriterija k koristnosti' },
                     labels: { horizontalAlignment: 'right' },
                     tickMarks: { color: '#BCBCBC', visible: false }
                 },
@@ -6554,7 +6554,7 @@ function initializeDataAndSettingsContainers(){
 	/* chart settings */
 	sensitivitySettings = {
 		source: /*sensitivityDataAdapter,*/sensitivityData,
-		title: "Sensitivity Up",
+		title: "Občutljivost navzgor",
 		description: "",
 		padding: {
 			left: 5,
@@ -6978,7 +6978,7 @@ function increaseDecrease(){ console.log("INCREASE/DECREASE");
 
 
 	 increaseDecreaseDataGlobal = increaseDecreaseData;
-
+     //increaseDecreaseDataGlobal[2].increaseKor = 1;
      var source =
             {
                 localdata: increaseDecreaseData,
