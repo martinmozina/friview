@@ -329,6 +329,18 @@ function Model(){
         return values;
     }
 
+    this.refreshMinMaxValueOFAllRelativeCriteria = function(){
+        var _self = this;
+
+        var criteria = this.getCriteriaToList();
+
+        criteria.forEach(function(criterion){
+            if(criterion.scaleType == 'relative'){
+                _self.refreshMinMaxValueOfCriterion(criterion);    
+            }
+        });
+    },
+
     this.refreshMinMaxValueOfCriterion = function(criterion){
         // Metoda osveži vrednosti minValue in maxValue podanemu kriteriju glede na trenutne variante.
         
@@ -465,7 +477,8 @@ function Model(){
 
         criterion.valueFunction.usingMACBETH = false;
         criterion.valueFunction.MACBETHData = {};
-        criterion.valueFunction.MACBETHOptions = [];
+        // Options ne resetira, saj te ostanejo...
+        // criterion.valueFunction.MACBETHOptions = [];
         criterion.valueFunction.MACBETHIntervals = {};
         criterion.valueFunction.MACBETHScale = [];
         criterion.valueFunction.MACBETHDifferenceMatrix = {};
@@ -692,21 +705,19 @@ function Model(){
     this.saveModel = function(modelName){
         
         var filename = modelName += ".json";
-        var cc = this.getModelString();
-        var bl = new Blob([cc], {type: "text/plain;charset=utf-8"});
+        var strModel = this.getModelString();
+        var bl = new Blob([strModel], {type: "text/plain;charset=utf-8"});
         saveAs(bl, filename);
     }
 
     this.openModel = function(){
         var _self = this;
 
-        // MR: To kar se tiče logike UI-ja prenesi vn iz modela....
-        
         //preverjanje podpore brskalnika za File API
         if (window.File && window.FileReader && window.FileList && window.Blob) {
             
         } else {
-          alert('The File APIs are not fully supported in this browser.');
+          alert('Vmesnik File v tem brskalniku ni podprt.');
         }
         
         //kreireanje file chooserja
@@ -953,7 +964,6 @@ function Model(){
         for(var i = 0; i < node.children.length; i++){
             var child = node.children[i];
 
-            //MR: Tale if bi se dal združit v enga.... (k sta gnezdena if-a enaka...)
             if(child.type == "criterion"){
 
                 child.weight = child.weight ? child.weight : 0;
@@ -1019,7 +1029,6 @@ function UMG(getMementoMethod, updateMethod, maxStates){
         };
 
         return state;
-        
     }
     
     /*
@@ -1041,7 +1050,6 @@ function UMG(getMementoMethod, updateMethod, maxStates){
         {
             this.redoStack = []
         }
-
     }
     
     this.UNDO = function(){
@@ -1059,7 +1067,6 @@ function UMG(getMementoMethod, updateMethod, maxStates){
                 this.updateModel(memento.model);
             }
         }
-
     }
     
     this.REDO = function(){
@@ -1077,7 +1084,6 @@ function UMG(getMementoMethod, updateMethod, maxStates){
                 this.updateModel(memento.model);
             }
         }   
-
     }
     
     /*

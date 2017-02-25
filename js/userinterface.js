@@ -24,10 +24,9 @@ var lessValuables = [];
 var expectedValues = [];
 var increaseDecreaseDataGlobal;
 // MR: Tole pol zamenjaj če ne boš več rabil oz naredi v nastavitvah....
-var macbethDifferenceLabels = ["extreme", "v. strong", "strong", "moderate", "weak", "v. weak", "no"];
+ var macbethDifferenceLabels = ["extreme", "v. strong", "strong", "moderate", "weak", "v. weak", "no"];
 // var macbethDifferenceLabels = ["extreme", "strong", "moderate", "weak", "no"];
 
-// MRN: odkomentiraj...
 window.addEventListener("beforeunload", function (e) {
     var confirmationMessage = 'Are you sure you want to leave page? '
                             + 'All your unsaved work will be lost.';
@@ -57,6 +56,7 @@ $(document).ready(function(){
         $('#dialogValFuncLinear').DialogLinear({autoOpen: false});
         $('#dialogValFuncDiscrete').DialogDiscrete({autoOpen: false});
         $('#dialogWeight').DialogWeights({autoOpen: false});
+        $('#dialogAllWeight').DialogAllWeights({autoOpen: false});
         $('#dialogSaveModel').DialogSaveModel();
 
         $('#macbethIntervalTooltip').tooltipMACBETHInterval({});
@@ -64,7 +64,9 @@ $(document).ready(function(){
         // YesNo DialogBox intialization
         $('#dialogYesNoMessage').messageYesNoDialog({autoOpen: false});
 
+        MacbethCalculator();
         MacbethIntervalCalculator();
+        MacbethInconsistencyChecker();
 
         // $("#tabTree").on("click", refreshCircMenu);
 
@@ -76,13 +78,13 @@ $(document).ready(function(){
             initTools: function(type, index, tool, menuToolInitialization){
                 switch(index){
                     case 0:
-                        var btnNew = $("<div><img src='images/imgNew16.png' style='float:left'/><div style='float:right; margin-left:5px;'>New</div></div>");
+                        var btnNew = $("<div><img src='images/imgNew16.png' style='float:left'/><div style='float:right; margin-left:5px;'>Nov model</div></div>");
                         tool.append(btnNew);
                         btnNew.jqxButton({ height: 16 });
                         btnNew.on('click', function(){
                             
                             $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                                contentText: "All your unsaved data will be lost! Do you want to proceed?",
+                                contentText: "Vse neshranjene spremembe bodo izgubljene. Želite nadaljevati?",
                                 yesAction: function(){
                                     window.model = new Model();
                                     window.model.resetModel();
@@ -96,7 +98,7 @@ $(document).ready(function(){
                         });
                         break;
                     case 1:
-                        var btnSave = $("<div><img src='images/imgSave16.png' style='float:left'/><div style='float:right; margin-left:5px;'>Save</div></div>");
+                        var btnSave = $("<div><img src='images/imgSave16.png' style='float:left'/><div style='float:right; margin-left:5px;'>Shrani</div></div>");
                         tool.append(btnSave);
                         btnSave.jqxButton({ height: 16 });
                         btnSave.on('click', function(){
@@ -104,7 +106,7 @@ $(document).ready(function(){
                         });
                         break;
                     case 2:
-                        var btnOpen = $("<div style=margin-left:3px;><img src='images/imgOpen16.png' style='float:left'/><div style='float:right; margin-left:5px;'>Open</div></div>");
+                        var btnOpen = $("<div style=margin-left:3px;><img src='images/imgOpen16.png' style='float:left'/><div style='float:right; margin-left:5px;'>Odpri</div></div>");
                         tool.append(btnOpen);
                         btnOpen.jqxButton({ height: 16 });
                         btnOpen.on('click', function(){
@@ -116,7 +118,7 @@ $(document).ready(function(){
                         var btnUndo = $("<div style='margin-left:15px;'><img src='images/imgUndo16.png' style='float:left'/><div style='float:right;'></div></div>");
                         tool.append(btnUndo);
                         btnUndo.jqxButton({ height: 16 });
-                        btnUndo.jqxTooltip({content: "Undo last action", animationShowDelay: 1000});
+                        btnUndo.jqxTooltip({content: "Razveljavi", animationShowDelay: 1000});
                         btnUndo.on('click', function(){
                             UMModel.UNDO();
                             gridVariants.rebuildGrid();
@@ -126,7 +128,7 @@ $(document).ready(function(){
                         var btnRedo = $("<div style=margin-left:3px;><img src='images/imgRedo16.png' style='float:left'/><div style='float:right;'></div></div>");
                         tool.append(btnRedo);
                         btnRedo.jqxButton({ height: 16 });
-                        btnRedo.jqxTooltip({content: "Redo last action.", animationShowDelay: 1000});
+                        btnRedo.jqxTooltip({content: "Ponovno uveljavi", animationShowDelay: 1000});
                         btnRedo.on('click', function(){
                             UMModel.REDO();
                             gridVariants.rebuildGrid();
@@ -135,11 +137,7 @@ $(document).ready(function(){
                 }
             }
         });
-        // $('#toolbar').on('click', function(event){
-        //     // Kadar je kliknjen toolbar, ali katerakoli ikona na njem, se krožni menu zapre.
-        //     refreshCircMenu();
-        // });
-
+        
         ///// Urejanje tabov: Value tree, Variants, Analyse...
 
         var validationBeforeAnalysis = function(){
@@ -149,13 +147,13 @@ $(document).ready(function(){
             // Preveri ali model vsebuje variante.
             var variants = model.getVariants();
             if(Object.keys(variants).length == 0){
-                return "Model doesn't contain any variants!"
+                return "Model ne vsebuje nobene variante!"
             }
 
             // Preveri ali model vsebuje kriterije.
             var criteria = model.getCriteriaToList();
             if(criteria.length < 2){
-                return "Model must contains at least two critera."
+                return "Model mora vsebovati vsaj dva kriterija."
             }
 
             // Preveri ali obstaja kaka nekonsistentna celica v grid-u variant.
@@ -165,7 +163,7 @@ $(document).ready(function(){
 
                 var strIncoVariants = inconsistentVariants.join(', ');
 
-                return "Variants with inconsistent data: " + strIncoVariants
+                return "Variante z nekonsistentnimi podatki: " + strIncoVariants
             }
 
             return "OK";
@@ -212,7 +210,7 @@ $(document).ready(function(){
                     if(this.validationMessage != 'OK'){
                         $('#tabsContent').jqxTabs('select', this.goToIndex);
 
-                        var message = "Model is not valid for analyse. " + this.validationMessage;
+                        var message = "Model nima veljavenih podatkov za analizo. " + this.validationMessage;
                         $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
                             height: 180,
                             contentText: message,
@@ -274,10 +272,6 @@ function popUpDialogWeights(){
     $('#dialogWeight').DialogWeights('open', currentD);
 }
 
-function popUpMACBETHDialog(){
-    // MR1: izbriši ker ni več potrebna....
-}
-
 function myParseFloat(obj){
 
     var obj = obj.replace(',', '.');
@@ -314,18 +308,18 @@ function CircularMenu(){
                     "top:" + 0 + "px; left:" + 0 + "px; background: url(images/detailsIcon32.png)' onClick='popUpDialogNodeCriteriaDetails()'></div>");
 
     this.btnWeight = $("<div id='menBtnWeight' class='circMenuItem' style='position:absolute; visibility:hidden;"+
-                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/balanceIcon32.png)' onClick='popUpDialogWeights()'></div>");
+                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/weighingIcon32.png)' onClick='popUpDialogWeights()'></div>");
 
     this.btnValFunc = $("<div id='menBtnValFunc' class='circMenuItem' style='position:absolute; visibility:hidden;"+
                     " top:" + 0 + "px; left:" + 0 + "px; background: url(images/imgValFunc32.png)' onClick='popUpDialogValFunc()'></div>");
 
 
-    $(this.btnRemove).jqxTooltip({content: 'Delete node'});
-    $(this.btnAddNode).jqxTooltip({content: 'Add node'});
-    $(this.btnAddCriteria).jqxTooltip({content: 'Add criterion'});
-    $(this.btnDetails).jqxTooltip({content: 'Properties'});
-    $(this.btnWeight).jqxTooltip({content: 'Edit weights'});
-    $(this.btnValFunc).jqxTooltip({content: 'Edit value function'});
+    $(this.btnRemove).jqxTooltip({content: 'Odstrani vozlišče'});
+    $(this.btnAddNode).jqxTooltip({content: 'Dodaj vozlišče'});
+    $(this.btnAddCriteria).jqxTooltip({content: 'Dodaj kriterij'});
+    $(this.btnDetails).jqxTooltip({content: 'Lastnosti'});
+    $(this.btnWeight).jqxTooltip({content: 'Urejevanje uteži'});
+    $(this.btnValFunc).jqxTooltip({content: 'Urejevanje funkcije koristnosti'});
 
     $('body').append(this.btnRemove);
     $('body').append(this.btnAddNode);
@@ -552,10 +546,12 @@ function GridVariant(gridSelector){
 
             if(criterion.valueFunction.type == "linear" || criterion.valueFunction.type == "piecewise"){
                 
+                var maxDecimalPlaces = _self.getLongestDecimalPlacesInDataOfCriterion(criterion.name);
+
                 newColumn = {
                     width: 150,
-                    text: criterion.name, 
-                    datafield: criterion.name, 
+                    text: criterion.name,
+                    datafield: criterion.name,
                     validation: _self._cellValidation,
                     cellclassname: _self._cellClassAppender,
                 }
@@ -673,6 +669,7 @@ function GridVariant(gridSelector){
             height: 390,
             autoheight: false,
             columns: this._columns,
+            columnsresize: true,
             editable: true,
             pageable: false,
             pagermode: 'simple',
@@ -694,7 +691,7 @@ function GridVariant(gridSelector){
                         _self.loadFromExcel();
                     }
                 });
-                btnExcelOpen.jqxTooltip({content: "Load variants from excel file.", animationShowDelay: 1000});
+                btnExcelOpen.jqxTooltip({content: "Uvoz variant iz tabelarne datoteke.", animationShowDelay: 1000});
 
                 var btnDeleteAllVariants = $("<div style='float:left;margin-left:4px;margin-top:4px;'><img src='images/imgClear16.png'/></div>");
                 toolbar.append(btnDeleteAllVariants);
@@ -703,7 +700,7 @@ function GridVariant(gridSelector){
                     if(!this.disabled){
 
                         $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                            contentText: "Are you sure you want to delete all variants?",
+                            contentText: "Ali ste prepričani, da želite odstraniti vse variante?",
                             yesAction: function(){
                                 UMModel.saveState();
                                 window.model.resetVariants();
@@ -712,7 +709,7 @@ function GridVariant(gridSelector){
                         });
                     }
                 });
-                btnDeleteAllVariants.jqxTooltip({content: "Delete all variants from grid.", animationShowDelay: 1000});
+                btnDeleteAllVariants.jqxTooltip({content: "Odstrani vse variante.", animationShowDelay: 1000});
 
                 // var btnDeleteSelectedVariants = $("<div id='btnDeleteSelVar' style='float:left;margin-left:4px;margin-top:4px;'><img src='images/imgRemoveSelected16.png'/></div>");
                 // toolbar.append(btnDeleteSelectedVariants);
@@ -733,7 +730,7 @@ function GridVariant(gridSelector){
                 btnRefreshInconsistentCells.on('click', function(){
                     _self.rebuildGrid();
                 });
-                btnRefreshInconsistentCells.jqxTooltip({content: "Refresh grid", animationShowDelay: 1000});
+                btnRefreshInconsistentCells.jqxTooltip({content: "Osveži tabelo variant.", animationShowDelay: 1000});
 
                 toolbar.css('visibility', 'visible');
             }
@@ -785,7 +782,6 @@ function GridVariant(gridSelector){
 
         // Ponovna nastavitev zamika.
         $('#gridVariants').jqxGrid('scrolloffset', scrollPosition.top, scrollPosition.left);
-
     }
 
     this._checkFixedInconsistency = function(){
@@ -887,6 +883,34 @@ function GridVariant(gridSelector){
         _self.inconsistentCells = inconsistencies;
     }
 
+    this.getLongestDecimalPlacesInDataOfCriterion = function(criterionName){
+
+        var variants = model.getVariants();
+
+        var maxDecimalPlaces = 0;
+
+        for(var i in variants){
+            var variant = variants[i];
+
+            var value = variant[criterionName];
+            
+            if(typeof(value) === 'undefined'){
+                continue;
+            }            
+
+            if($.isNumeric(value)){
+                var strValue = value.toString().replace(",", ".");
+                var splitValue = strValue.split(".");
+                if(splitValue.length == 2){
+                    if(splitValue[1].length > maxDecimalPlaces){
+                        maxDecimalPlaces = splitValue[1].length;
+                    }
+                }
+            }
+
+        }
+    }
+
     // METODE VALIDACIJE.
 
     this._cellClassAppender = function(rowIndx, colName, cellValue, rowData){
@@ -928,7 +952,7 @@ function GridVariant(gridSelector){
             if(!$.isNumeric(value)){
                 return {
                     result: false,
-                    message: "Inserted value for function type: '" + criterion.valueFunction.type + "' must be numeric!"
+                    message: "Vrednost za tip funkcije: '" + criterion.valueFunction.type + "' mora biti numerična!"
                 }
             }
 
@@ -938,7 +962,7 @@ function GridVariant(gridSelector){
             if(value < min || value > max){
                 return {
                     result: false,
-                    message: "Inserted value is out of fixed interval: " + criterion.minValue + " - " + criterion.maxValue
+                    message: "Vnešena vrednost je izven fiksnega intervala: " + criterion.minValue + " - " + criterion.maxValue
                 }
             }
         }
@@ -964,7 +988,7 @@ function GridVariant(gridSelector){
         if(value.trim() == ""){
             return{
                 result: false,
-                message: "Value for 'Option' must be inserted!"
+                message: "Vrednost za 'Option' mora biti vnešena!"
             }
         }
 
@@ -977,7 +1001,7 @@ function GridVariant(gridSelector){
             if(variant.Option == value && vid != variant.vid){
                 return {
                     result: false,
-                    message: "Variant with Option: '" + value + "' already exists!"
+                    message: "Varianta z lastnostjo 'Option': '" + value + "' že obstaja!"
                 }
             }
         }
@@ -1048,8 +1072,8 @@ function GridVariant(gridSelector){
 
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
                     onlyYes: true,
-                    headerText: 'Warning!',
-                    contentText: 'All variants must contains "Option" column!',
+                    headerText: 'Opozorilo!',
+                    contentText: 'Vse variante morajo vsebovati stolpec: "Option"!',
                     throwException: true
                 });
             }
@@ -1115,7 +1139,7 @@ function GridVariant(gridSelector){
         if(unaddedVariants != ""){
             unaddedVariants = unaddedVariants.substring(0, unaddedVariants.length - 2);
             $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                contentText: "Unadded variants: " + unaddedVariants,
+                contentText: "Nedodane variante: " + unaddedVariants,
                 onlyYes: true
             });
         }
@@ -1415,14 +1439,14 @@ function ValueTree(){
 
                     $('#formCriteriaDetails').jqxValidator({
                         rules: [
-                            { input: '#tfName', message: 'Field is required!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#selScaleType', message: 'Field is required!', action: 'keyup, blur', rule: selectValidatorNotNull},
-                            { input: '#selValFuncType', message: 'Field is required!', action: 'keyup, blur', rule: selectValidatorNotNull },
-                            { input: '#tfMin', message: 'Field is required!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#tfMin', message: 'Field must contains numer!', action: 'keyup, blur', rule: isMinMaxValidator },
-                            { input: '#tfMax', message: 'Field is required!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#tfMax', message: 'Field must contains numer!', action: 'keyup, blur', rule: isMinMaxValidator },
-                            { input: '#tfName', message: 'Name already exists!', action: 'keyup, blur', rule: function(input, commit){
+                            { input: '#tfName', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                            { input: '#selScaleType', message: 'Polje je obvezno!', action: 'keyup, blur', rule: selectValidatorNotNull},
+                            { input: '#selValFuncType', message: 'Polje je obvezno!', action: 'keyup, blur', rule: selectValidatorNotNull },
+                            { input: '#tfMin', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                            { input: '#tfMin', message: 'Polje mora vsebovati število!', action: 'keyup, blur', rule: isMinMaxValidator },
+                            { input: '#tfMax', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                            { input: '#tfMax', message: 'Polje mora vsebovati število!', action: 'keyup, blur', rule: isMinMaxValidator },
+                            { input: '#tfName', message: 'Ime že obstaja!', action: 'keyup, blur', rule: function(input, commit){
                                 var existingCriterias = model.getAllCriteraAndNodeToList();
 
                                 var isValid = true;
@@ -1464,8 +1488,8 @@ function ValueTree(){
 
                         $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
                             height: 180,
-                            headerText: 'Warning!',
-                            contentText: "Would you like to rename property on variants?",
+                            headerText: 'Opozorilo!',
+                            contentText: "Želite preimenovati tudi lastnosti variant?",
                             yesAction: function(){
                                 // Funkcija prvo preimenuje lastnosti variant potem shrani nov posodobljen kriterij.
 
@@ -1551,9 +1575,6 @@ function ValueTree(){
         _resetDialog: function(){
             var _self = this;
 
-            // MR: BUG če odpreš devtools dost visok se vseno odpre previsoko in polovice ne vidiš ter ne moreš premaknit...
-            // Tko da to bi lahk naredu tko da bi odpiral z position "center", sam tm je pa problem, da ti ga odpre na vrhu,
-            // četudi si zascrollal dol. Tko da glej ko je scrol večji od 0 al pa kj takega....
             $(_self.dialogID).jqxWindow({        
                 position: {
                     x: ($(document).width() / 2) - (_self.options.width / 2),
@@ -1759,8 +1780,8 @@ function ValueTree(){
 
                     $('#formNodeDetails').jqxValidator({
                         rules: [
-                            { input: '#tfNameNode', message: 'Field is required!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#tfNameNode', message: 'Name already exists!', action: 'keyup, blur', rule: function(input, commit){
+                            { input: '#tfNameNode', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                            { input: '#tfNameNode', message: 'Ime že obstaja!', action: 'keyup, blur', rule: function(input, commit){
                                 
                                 var existingCriterias = model.getAllCriteraAndNodeToList();
 
@@ -1916,14 +1937,13 @@ function ValueTree(){
                 initContent: function(){
                     // _self.resetGraph();
 
-                    $('#btnResetPiecewiseGraph').jqxButton({width:95});
+                    $('#btnResetPiecewiseGraph').jqxButton({width:115});
                     $('#btnResetPiecewiseGraph').on('click', function(event){
                         _self._resetGraph();
                     });
 
                     $('#btnSavePiecewise').jqxButton({width:55});
                     $('#btnSavePiecewise').on('click', function(){
-                        //MR: Kaj pa zapiranje z križcem (pri vseh dialogih....)
                         
                         var pointsToSave = [];
                         _self.chart.series[0].data.forEach(function(point, indx){
@@ -2128,7 +2148,7 @@ function ValueTree(){
                     max: 100,
                     min: 0,
                     title:{
-                        text:'Preference value'
+                        text:'Preferenčna vrednost'
                     },
                 },
                 plotOptions: {
@@ -2144,7 +2164,7 @@ function ValueTree(){
                     useHTML:true,
                     valueDecimals: 2,
                     formatter: function(){
-                        return '<b>Preference value:</b> ' + this.y.toFixed(2) + '</br> <b>' + _self.criterion.name + ':</b> ' + this.x.toFixed(2);
+                        return '<b>Preferenčna vrednost:</b> ' + this.y.toFixed(2) + '</br> <b>' + _self.criterion.name + ':</b> ' + this.x.toFixed(2);
                     }
                 },
                 series: [{
@@ -2277,7 +2297,7 @@ function ValueTree(){
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
                     height: 180,
                     onlyYes: true,
-                    headerText: 'Warning!',
+                    headerText: 'Opozorilo!',
                     contentText: "Dialoga ni možno odpreti. Prvo je potrebno vnesti variante, da se pridobi min in max vrednost.",
                     yesAction: function(){
                         // Fukcija proži brisanje kategorije.
@@ -2301,7 +2321,7 @@ function ValueTree(){
                     $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
                         height: 180,
                         onlyYes: true,
-                        headerText: 'Warning!',
+                        headerText: 'Opozorilo!',
                         contentText: "Dialoga ni možno odpreti. Variante za podan kriterij nimajo vnešenih samo številskih vrednosti.",
                         yesAction: function(){
                             // Fukcija proži brisanje kategorije.
@@ -2491,10 +2511,18 @@ function ValueTree(){
             _self.points = [];
             _self.pointsObjects.forEach(function(el, indx){
 
-                 _self.points.push({
-                    x: parseFloat(el.val),
-                    y: model.linearInterpolation(el.val, _self.min, 0, _self.max, 100)
-                 });
+                var xVal = el.val;
+                var yVal = model.linearInterpolation(el.val, _self.min, 0, _self.max, 100);
+
+                var isInverse = $.parseJSON(_self.criterion.inverseScale);
+                if(isInverse == true){
+                    yVal = 100 - yVal;
+                }
+
+                _self.points.push({
+                    x: xVal,
+                    y: yVal
+                });
             }); 
             
             // Popravilo intervala.
@@ -2505,7 +2533,6 @@ function ValueTree(){
 
         _repairIntervalOfGraphForFixedCriterion: function(){
             // Črta mora obstajati od začetka do konca! Zato kadar gre za Fixed potegne črto do obeh koncev(kadar vrednosti variant ne pokrivajo celotnega intervala).
-            // MR: ja to nekak pohendli če se znajde kaka varianta čez rob.... (mogoče vindow in jim določi vrednsoti, ali poreži vse, ali odstrani te variante...)
 
             var _self = this;
 
@@ -2518,16 +2545,26 @@ function ValueTree(){
                 var minPoint = _self.points[0];
                 var maxPoint = _self.points[_self.points.length - 1];
 
+                var yMin = 0;
+                var yMax = 100;
+
+                // V primeru inversa min in max točki obrne y vrednosti.
+                var isInverse = $.parseJSON(_self.criterion.inverseScale);
+                if(isInverse == true){
+                    yMin = 100;
+                    yMax = 0;
+                }
+
                 if(minPoint.x > _self.min){
                     _self.points.unshift({
                         x: _self.min,
-                        y: 0
+                        y: yMin
                     });
                 }
                 if(maxPoint.x < _self.max){
                     _self.points.push({
                         x: _self.max,
-                        y: 100
+                        y: yMax
                     });
                 }
             }
@@ -2559,7 +2596,7 @@ function ValueTree(){
                     max: 100,
                     min: 0,
                     title:{
-                        text:'Preference value'
+                        text:'Preferenčna vrednost'
                     },
                 },
                 plotOptions: {
@@ -2567,8 +2604,10 @@ function ValueTree(){
                         stacking: 'normal'
                     },
                     line: {
-                        cursor: 'ns-resize'
-                    }
+                        cursor: 'ns-resize',
+                        turboThreshold: 2000,
+                    },
+                    dataGrouping: false
                 },
                 tooltip: {
                     enabled: true,
@@ -2585,16 +2624,17 @@ function ValueTree(){
                             }
 
                         });
-                        return '<b>Preference value:</b> ' + _self2.y.toFixed(2) +
-                                '</br><b>Variants value:</b> ' +  _self2.x.toFixed(2) +
-                                '</br> <b>Options:</b> ' + optionsList;
+                        return '<b>Preferenčna vrednost:</b> ' + _self2.y.toFixed(2) +
+                                '</br><b>Vrednost variante:</b> ' +  _self2.x.toFixed(2) +
+                                '</br> <b>Variante:</b> ' + optionsList;
                     }
                 },
                 series: [{
                     data: _self.points,
                     draggableY: false,
                     draggableX: false,
-                    showInLegend: false
+                    showInLegend: false,
+                    dataGrouping: false
                 }]
             });
 
@@ -2613,7 +2653,7 @@ function ValueTree(){
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
                     height: 180,
                     onlyYes: true,
-                    headerText: 'Warning!',
+                    headerText: 'Opozorilo!',
                     contentText: "Dialoga ni možno odpreti. Prvo je potrebno vnesti variante, da se pridobi min in max vrednost.",
                     yesAction: function(){
                         // Fukcija proži brisanje kategorije.
@@ -2637,7 +2677,7 @@ function ValueTree(){
                     $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
                         height: 180,
                         onlyYes: true,
-                        headerText: 'Warning!',
+                        headerText: 'Opozorilo!',
                         contentText: "Dialoga ni možno odpreti. Variante za podan kriterij nimajo vnešenih samo številskih vrednosti.",
                         yesAction: function(){
                             // Fukcija proži brisanje kategorije.
@@ -2693,32 +2733,32 @@ function ValueTree(){
                 initContent: function(){
 
                     $('#btnAddAllExistingCategories').jqxButton({height: 16, width: 16});
-                    $('#btnAddAllExistingCategories').jqxTooltip({content: "Add all existing categories (from variants)", animationShowDelay: 1000});
+                    $('#btnAddAllExistingCategories').jqxTooltip({content: "Dodaj vse obstoječe kategorije (iz vrednosti variant)", animationShowDelay: 1000});
                     $('#btnAddAllExistingCategories').on('click', function(event){
 
                         _self._addAllCategoriesFromComboBox();
                     });
 
                     $('#btnSortCategoryAsc').jqxButton({height: 16});
-                    $('#btnSortCategoryAsc').jqxTooltip({content: "Sort categories ascending by value", animationShowDelay: 1000});
+                    $('#btnSortCategoryAsc').jqxTooltip({content: "Sortiraj po vrednosti naraščujoče", animationShowDelay: 1000});
                     $('#btnSortCategoryAsc').on('click', function(event){
                         var fakeCriterion = _self.getSortedCategories();
                         _self.setSliders(fakeCriterion);
                     });
 
                     $('#btnSortCategoryDesc').jqxButton({height: 16});
-                    $('#btnSortCategoryDesc').jqxTooltip({content: "Sort categories descending by value", animationShowDelay: 1000});
+                    $('#btnSortCategoryDesc').jqxTooltip({content: "Sortiraj po vrednosti padajoče", animationShowDelay: 1000});
                     $('#btnSortCategoryDesc').on('click', function(event){
                         var fakeCriterion = _self.getSortedCategories(-1);
                         _self.setSliders(fakeCriterion);
                     });
 
                     $('#btnClearAllCategories').jqxButton({height: 16});
-                    $('#btnClearAllCategories').jqxTooltip({content: "Clear all categories", animationShowDelay: 1000});
+                    $('#btnClearAllCategories').jqxTooltip({content: "Odstrani vse kategorije", animationShowDelay: 1000});
                     $('#btnClearAllCategories').on('click', function(event){
                         
                         $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                            contentText: "Are you sure you want to delete all categories?",
+                            contentText: "Ali res želite odstraniti vse kategorije?",
                             yesAction: function(){
                                 $('#categorySlidersPanel .categoryDiv').remove();
                             }
@@ -2730,6 +2770,13 @@ function ValueTree(){
                     $('#btnPopUpMACBETH').on('click', function(event){
 
                         _self.popupMACBETHDialog();
+
+                        try{
+
+                            $('#MACBETHgrid').MCGrid('refreshInconsistentCells');
+                        }
+                        catch(ex){
+                        }
                     });
 
                     $('#btnSaveDiscrete').jqxButton({width:55});
@@ -2744,15 +2791,8 @@ function ValueTree(){
                          $('#dialogValFuncDiscrete').jqxWindow('close');
                     });
                     
-                    
-                    // $('#btnAddAllExistingCategories').jqxButton({width: 75});
-                    // $('#btnAddAllExistingCategories').on('click', function(){                                                //validacija, ali že obstaja kategorija z imenom...
-                        
-                    //     _self._addAllCategoriesFromComboBox();
-                    // });
-
-                    $('#btnAddCategory').jqxButton({width: 95});
-                    $('#btnAddCategory').on('click', function(){                                                //validacija, ali že obstaja kategorija z imenom...
+                    $('#btnAddCategory').jqxButton({width: 125});
+                    $('#btnAddCategory').on('click', function(){                                             
                         
                         $('#formValFuncDiscrete').jqxValidator('validate');
 
@@ -2760,13 +2800,13 @@ function ValueTree(){
 
                     $('#formValFuncDiscrete').jqxValidator({
                         rules: [
-                            {input: '#cobCategoryName', message: 'Please insert name of category.', action: 'change', rule: function(event){
+                            {input: '#cobCategoryName', message: 'Prosimo vnesite ime kategorije.', action: 'change', rule: function(event){
                                 // Simulira required validator, ker combo box in <input> elemtn....
 
                                 var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
                                 return newCategoryName.trim() != "";
                             }},
-                            {input: '#cobCategoryName', message: 'Category with this name alread exists.', action: 'keyup', rule: function(event){
+                            {input: '#cobCategoryName', message: 'Kategorija z podanim imenom že obstaja.', action: 'keyup', rule: function(event){
                                 // var newCategoryName = $('#tfCategoryName').val();
                                 var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
                                 var categories = $('.categoryNameText span');
@@ -2780,11 +2820,17 @@ function ValueTree(){
                                 // var valid = categories.index('<td>' + newCategoryName + '</td>') == -1
                                 return valid;
                             }},
-                            {input: '#cobCategoryName', message: 'Inserted name: "min" is reserved. Please insert other name.', action: 'change', rule: function(event){
+                            {input: '#cobCategoryName', message: 'Vnešeno ime: "min" je rezervirano. Prosimo vnesite drugo ime.', action: 'change', rule: function(event){
                                 // Simulira required validator, ker combo box in <input> elemtn....
 
                                 var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
                                 return newCategoryName.trim() != "min";
+                            }},
+                            {input: '#cobCategoryName', message: 'Vnešeno ime: "max" je rezervirano. Prosimo vnesite drugo ime.', action: 'change', rule: function(event){
+                                // Simulira required validator, ker combo box in <input> elemtn....
+
+                                var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
+                                return newCategoryName.trim() != "max";
                             }},
                         ]
                     });
@@ -2975,7 +3021,7 @@ function ValueTree(){
             var _self = this;
 
             // Se znebi presledkov.
-            var newSliderID = 'slider' + newCategoryName.split(" ").join("_");
+            var newSliderID = 'slider' + $('#tableCategorySliders .categoryDiv').length; // newCategoryName.split(" ").join("_");
 
             var newCategoryDiv = $('<div class="categoryDiv">' + 
                                 '<div class="categoryDelete celle"><div class="categoryImageDiv"><img src="./images/imgRemoveSelected16.png"/></div></div>' +
@@ -3049,7 +3095,6 @@ function ValueTree(){
             }); 
             // Event za spremembo intervalov je potreben tudi kadar se slider spreminja z pomočjo gumbov ob levi in desni.
             $(newCategoryDiv).find('.jqx-icon-arrow-right').on('click', function(){
-                // MR: NUJNO NUJNO PRIDOBI IME KATEGORIJ IN GA PODAJ (TAKO KOT PRI SLIDANJU...)
 
                 _self._recalculateIntervals();
             });
@@ -3108,8 +3153,8 @@ function ValueTree(){
             $('.categoryImageDiv img:last').on('click', function(event){
                 
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                    headerText: 'Warning!',
-                    contentText: 'Are you sure you want to delete category?',
+                    headerText: 'Opozorilo!',
+                    contentText: 'Ali res želite odstraniti kategorijo?',
                     yesAction: function(){
                         // Fukcija proži brisanje kategorije.
 
@@ -3411,7 +3456,6 @@ function ValueTree(){
 
                         // Shranjevanje podatkov.
                         var macData = $('#MACBETHgrid').MCGrid('getMACBETHDataFromGrid');
-                        _self._checkIfEmptyCell(macData);
 
                         var macOptions = $('#MACBETHgrid').MCGrid('getCriterionOptions');
                         _self.options.criterion.valueFunction.MACBETHData = macData;
@@ -3458,18 +3502,27 @@ function ValueTree(){
                     $('#btnDeleteMacbethData').jqxButton({
                         width:16, height: 16
                     });
-                    $('#btnDeleteMacbethData').jqxTooltip({content: "Clear all MACBETH data.", animationShowDelay: 1000});
+                    $('#btnDeleteMacbethData').jqxTooltip({content: "Počisti vse podatke MACBETH.", animationShowDelay: 1000});
                     $('#btnDeleteMacbethData').on('click', function(){
 
                         $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                            contentText: "All macbeth data will be lost. Do you wnat to proceed?",
+                            contentText: "Vsi podatki MACBETH bojo izgubljeni. Želite nadaljevati?",
                             yesAction: function(){
 
                                 model.resetMacbethDataToCriterion(_self.options.criterion);
 
+                                $('#MACBETHgrid').MCGrid('resetInconsistentCells');
+
                                 _self._refreshDialog();
                             }
                         });
+                    });
+
+                    $('#btnClearSelectedCell').jqxButton({
+                        width: 150,
+                    });
+                    $('#btnClearSelectedCell').on('click', function(){
+                        $('#MACBETHgrid').MCGrid('changeSelectedCellValue', '-');
                     });
 
                     // Inicializacija MCGrida.
@@ -3504,8 +3557,11 @@ function ValueTree(){
                         if(_self.silentSliderChange){
                             return;
                         }
-
+                     
                         var isSelected = $('#MACBETHgrid').MCGrid('isNowSelected', value);
+                        if( !isSelected ){
+                            return;
+                        }
 
                         var valueIndex = event.args.value;
                         var value = macbethDifferenceLabels[valueIndex];
@@ -3517,8 +3573,7 @@ function ValueTree(){
                         
                         var valueIndex = $('#sliderMacRelation').val();
                         var value = macbethDifferenceLabels[valueIndex];
-                        $('#MACBETHgrid').MCGrid('changeSelectedCellValue', value);
-                        
+                        $('#MACBETHgrid').MCGrid('changeSelectedCellValue', value);                      
                     });
 
                     $('#MACBETHgrid').MCGrid('getJqxGrid').on('cellselect', function(){
@@ -3607,6 +3662,7 @@ function ValueTree(){
             });
 
             $('#MACBETHgrid').MCGrid('initMCGrid');
+
         },
 
         _regenerateMACBETHData: function(){
@@ -3683,29 +3739,6 @@ function ValueTree(){
             return result;
         },
 
-        _checkIfEmptyCell: function(macbethData){
-            // Metoda preveri, če obstajajo prazni vnosi. (zaenkrati jih še ne dopušča)
-
-            var result = false;
-
-            var rowCatNames = Object.keys(macbethData);
-            for(var i=0; i < rowCatNames.length; i++){
-                var rowCat = rowCatNames[i];
-
-                for(var j=i+1; j < rowCatNames.length; j++){
-                    var colCat = rowCatNames[j];
-
-                    if(typeof(macbethData[rowCat][colCat]) == 'undefined' ){
-                        $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                            contentText: "All cells in grid must be filled!",
-                            onlyYes: true
-                        });
-                        throw "Nepopolno izpolnjen MACBETH grid."
-                    }
-                }
-            }
-        },
-
         getCurrentCriterion: function(){
             var _self = this;
 
@@ -3740,6 +3773,9 @@ function ValueTree(){
         // Vzorec podatka v MCData: { 'imeVrste-imeStolpca': 'vrednost', ....}
         _MCData: {},
 
+        // Kadar je grid nekonsistenten uporabi objekt _inconsistencyChanges za pomoč pri barvanju celic, ki jih je potrebno popravit.
+        _inconsistencyChanges: {},
+
         // ID-grida. (uporabljen ob rebuildanju...)
         gridDivID: "",
 
@@ -3754,24 +3790,41 @@ function ValueTree(){
             this._generateGridDataFromMCData();
 
             this._buildGrid();
+
+            // Odstrani obarvane celice, zaradi nekonsistentosti.
+            $('.MCCellInconsistentUp').removeClass('MCCellInconsistentUp');
+            $('.MCCellInconsistentDown').removeClass('MCCellInconsistentDown');
         },
 
-        get_MCDate: function(){
+        get_MCData: function(){
 
             return this._MCData;
         },
 
         changeSelectedCellValue: function(value){
             // Metoda v gridu nastavi izbrani celici podano vrednost. In spremeni MCData model.
+            var _self = this;
 
             var selectedCell = $(this.gridDivID).jqxGrid('selectedCell');
-            
+
             if(selectedCell == null){
                 return;
             }
 
+            var columnsInOrder = _self._columns;
+            var columnDataField = selectedCell.datafield;
+
+            var colIndx = columnsInOrder.findIndex(function(col){
+                return col.datafield == columnDataField;
+            });
+            var rowIndx = selectedCell.rowindex;
+
+            var macbethData = _self.getMACBETHDataFromGrid();
+
             var rowIndex = selectedCell.rowindex;
             var dataField = selectedCell.datafield;
+
+            var isConsistent = _self._checkInconsistencies(rowIndex, colIndx-1, value);
 
             $(this.gridDivID).jqxGrid('setcellValue', rowIndex, dataField, value);
         },
@@ -3785,8 +3838,23 @@ function ValueTree(){
         },
 
         isNowSelected: function(){
+            var _self = this;
 
-            return $(this.gridDivID).jqxGrid('getselectedcell') != null;
+            var selectedCell = $(this.gridDivID).jqxGrid('getselectedcell');
+
+            if(selectedCell == null){
+                return false;
+            }
+
+            // Celica mora biti nad diagonalo.
+            var rowIndex = selectedCell.rowindex;
+            var colIndex = _self.options.criterionOptions.indexOf(selectedCell.column);
+
+            if(colIndex == -1){
+                return false;
+            }
+
+            return colIndex > rowIndex;
         },
 
         getJqxGrid: function(){
@@ -3796,8 +3864,6 @@ function ValueTree(){
 
         getMACBETHDataFromGrid: function(){
             // Metoda naredi MCData iz podatkov, ki so vstavljeni v Grid.
-
-            // MR1: ZAKAJ SE PRI ZAMENJAVI VRSTIC TA METODA KLIČE VEČKRAT NI V REDUUU. (vrstic se itak več ne da zamenjat...)
             var _self = this;
 
             var MCData = {};
@@ -3819,8 +3885,13 @@ function ValueTree(){
 
                 // Prepis vrednosti v rowData.
                 columns.forEach(function(el2, indx2){
-                    //
-                    rowData[el2] = el[el2];
+                    
+                    if(el[el2] == ""){
+                        // Ker pri barvanju celic uporablj nastavitev prazne vrednosti prvi celici .... jo mora tukaj spustiti, sicer vrne dodaten podatek...
+                    }
+                    else{
+                        rowData[el2] = el[el2];   
+                    }
                 });
 
                 // Zapis v MCData.
@@ -3854,14 +3925,13 @@ function ValueTree(){
             var dataAdapter = new $.jqx.dataAdapter(source);
 
             // Kreiranje grida.
-            //MR1: ERROR V CONSOLI OB ZAMENJAVI STOLPCA, čeprav vse zgleda in deluje normalno...
             $(this.gridDivID).jqxGrid(
             {
                 width: _self.options.width,
                 height: _self.options.height,
                 source: dataAdapter,
                 editable: false,
-                columnsresize: false,
+                columnsresize: true,
                 columnsreorder: true,
                 selectionmode: 'singlecell',
                 columns: _self._columns,
@@ -3871,17 +3941,27 @@ function ValueTree(){
             // Obnašanje ob kliku na celico.
             $(this.gridDivID).on('cellclick', function (event) {
 
+                $('#MCMinimalChange').html('');
+
                 var colIndx = event.args.columnindex - 1;
                 var rowIndx = event.args.rowindex;
                 
-                // Kadar se zgodi klik na onemogočeno celico se ne zgodi nič.
+                // Kadar se zgodi klik na "onemogočeno celico" se ne zgodi nič.
                 if(colIndx <= rowIndx){
                     return;
                 }
 
                 // Nastavitev naslovnega texte (opt1 - opt3)
-                $('#MCFirstOption').html(_self.options.criterionOptions[rowIndx]);
-                $('#MCSecondOption').html(_self.options.criterionOptions[colIndx]);
+                var rowName = _self.options.criterionOptions[rowIndx];
+                var colName = _self.options.criterionOptions[colIndx]
+                $('#MCFirstOption').html(rowName);
+                $('#MCSecondOption').html(colName);
+
+                var inconsistencyChanges = $('#MACBETHgrid').MCGrid('getInco');
+                var change = inconsistencyChanges[rowName + '-' + colName];
+                if(change != null){
+                    $('#MCMinimalChange').html('Sprememba na: ' + change.differenceValue);
+                }
             });
 
             $(this.gridDivID).on('columnclick', function (event) {
@@ -3925,6 +4005,7 @@ function ValueTree(){
         _refreshGrid: function(){
             // Osvežitev grida ob spremebi (zamnejava stolpcev oz. vrstic).
             // Grid se destroja in ponovno naredi.
+            var _self = this;
 
             // Začasna shranitev podatkov, za kasnejšo ponovno kreacijo grida.
             var options = this.options;
@@ -3950,6 +4031,9 @@ function ValueTree(){
 
             // Nastavitev scroll pozicije na prejšnjo.
             $('#MACBETHgrid').jqxGrid('scrolloffset', scrollPosition.top, scrollPosition.left);
+
+            // Osvežitev nekonsistentnosti.
+            _self.refreshInconsistentCells();
         },
 
         _generateColumns: function(){
@@ -3964,7 +4048,7 @@ function ValueTree(){
             // v prvi stolpec ustrezno zapišejo imena.
             var firstColumnRenderer = function(row, column, value){
                 return '<div class="MCFirsColumnCellDiv">' + _self.options.criterionOptions[row] + '</div>';
-            } 
+            }
 
             _self._columns[_self._columns.length] =  {
                 pinned: true, 
@@ -3975,10 +4059,9 @@ function ValueTree(){
                 width: this.options.cellWidth
             };
 
-            var cellClassAppender = function(rowIndx, colName, neki, neki2, neki3){
-                // Fukcija vrne razred, ki obarva celico na sivo. To naredi za celice, ki so pod in na diagoanli.
-
-                var resultClasses = "";
+            var cellClassAppender = function(rowIndx, colName, value){
+                // Fukcija vrne razred, ki obarva celico. Na sivo če je pod diagonalo. 
+                // Obarva tudi "nekonsistentne" celice...
 
                 var colIndx = _self.options.criterionOptions.indexOf(colName);
 
@@ -3988,10 +4071,32 @@ function ValueTree(){
 
                 // Razred dodeli samo tistim pod in v diagonali.
                 if(colIndx <= rowIndx){
-                    resultClasses += 'MCUnderDiagonalCell'
+                    return 'MCUnderDiagonalCell'
                 }
 
-                return resultClasses;
+                // Barvanje nekonsistentnih celic...
+                var rowName = _self.options.criterionOptions[rowIndx];
+
+                // Prvi stolpec ni povezan z kategorijami in ima columnfield == null.
+                if(rowName == null || colName == null){
+                    return '';
+                }
+
+                var incoChanges = $('#MACBETHgrid').MCGrid('getInco');
+                var consistencyChange = incoChanges[rowName + '-' + colName];
+                // var consistencyChange = _self._inconsistencyChanges[rowName + '-' + colName];
+
+                if(consistencyChange == null){
+                    return '';
+                }
+                else if(consistencyChange.direction == 'up'){
+                    return 'MCCellInconsistentUp';
+                }
+                else if(consistencyChange.direction == 'down'){
+                    return 'MCCellInconsistentDown';
+                }
+
+                return '';
             }
 
             var cellRenderer = function(row, column, value){
@@ -4065,7 +4170,7 @@ function ValueTree(){
                     var alaStolpec = this.options.criterionOptions[j];
 
                     // MCSubData[alaStolpec] = (i + 1) + ' -- ' + (j + 1);
-                    MCSubData[alaStolpec] = '';
+                    MCSubData[alaStolpec] = '-';
 
                 }    
 
@@ -4099,6 +4204,7 @@ function ValueTree(){
                     var value = this._getMCDAtaFor(rowName, colName);
 
                     if(value == null){
+                        row[colName] = '-';
                         continue;
                     }
 
@@ -4166,43 +4272,149 @@ function ValueTree(){
             return null;
         },
 
-        // MACBETH - IZRAČUNAVANJE
-
-        sumnikiMapReverse: {},
-        sumnikiMapSplx: {},
-
         calculateMacbethValuesFromCriteiron: function(){
+            // Metoda izračuna in vrne vrednosti kategorij iz podatkov MACBETH, ki so v kriteriju.
+            var _self = this;
+
+            var criterion = $('#dialogMACBETH').DialogMACBETHH('getCurrentCriterion');
+            var macData = model.getCriteria(criterion.name).valueFunction.MACBETHData;
+            var macOptions = model.getCriteria(criterion.name).valueFunction.MACBETHOptions;
+
+            var macbethResult = MacbethCalculator.calculateMacbeth(macData, macOptions);
+
+            if(macbethResult.validResult == false){
+                $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
+                    headerText: 'Opozorilo!',
+                    contentText: 'Vnešeni podatki MACBETH so neveljavni!',
+                    onlyYes: true
+                });
+
+                return {
+                    validResult: false
+                }
+            }
+            
+            // Kadar je v panelu dodana kaka kategorije več, pride do tega, da ji ni bil dodeljen noben interval (redko ... če sta dve na novo dodani, in če niso vnešeni novi podatki v macbeth grid...)
+            // Zato tukaj tistim kategorijam, ki niso dobile intervala doda interval od 0 do 0.
+            // Zadeva se bo mogoče kasneje sama uredila, ko bom v macbeth implementiral še prazne vrednosti...
+            macOptions.forEach(function(el, indx){
+                if(!macbethResult.intervalResults.hasOwnProperty(el)){
+                    macbethResult.intervalResults[el] = {
+                        interval: {upperBound: 0, lowerBound: 0},
+                        value: 0
+                    };
+                }
+            });
+
+            return macbethResult;
+        },
+
+        refreshInconsistentCells: function(){
+            // Refresha nekonsistentne celice.
+            var _self = this;
+            
+            var macData = _self.getMACBETHDataFromGrid();
+            var criterion = $('#dialogMACBETH').DialogMACBETHH('getCurrentCriterion');
+            var macOptions = model.getCriteria(criterion.name).valueFunction.MACBETHOptions;
+
+            var consistencyResult = MacbethInconsistencyChecker.checkMacbethMatrix(macData, macOptions);
+
+            // Nastavi popravke, ki se uporabijo za barvanje celic ...
+            $(this.gridDivID).MCGrid('setInco', consistencyResult.feasibleChanges);
+
+            //Barvanje celic proži z nastavitvijo prazne vrednosti prazni celici... (v 1. vrstici 1. stolpec je zmeraj prazen....)
+            $(this.gridDivID).jqxGrid('setcellValue', 0, macOptions[0], '');
+        },
+
+        _checkInconsistencies: function(rowIndex, columnIndex, value){
+            // Metoda prevei, ali je matrika konsistenta, če za podan par vrstica, stolpec vstavi vrednost value.
+            // V primeru neveljavne ....
+
+            var _self = this;
+
+            var macData = _self.getMACBETHDataFromGrid();
+
+            var criterion = $('#dialogMACBETH').DialogMACBETHH('getCurrentCriterion');
+            var macOptions = model.getCriteria(criterion.name).valueFunction.MACBETHOptions;
+
+            var rowCategoryName = macOptions[rowIndex];
+            var columnCategoryName = macOptions[columnIndex];
+
+            macData[rowCategoryName][columnCategoryName] = value;
+
+            var consistencyResult = MacbethInconsistencyChecker.checkMacbethMatrix(macData, macOptions);
+
+            // Nastavi popravke, ki se uporabijo za barvanje celic ...
+            _self._inconsistencyChanges = consistencyResult.feasibleChanges;
+
+            if(consistencyResult.isConsistent == true){
+                return true;
+            }
+
+            return false;
+        },
+
+        resetInconsistentCells: function(){
+            // Resetira nekonsistentne celice.
+            var _self = this;
+
+            _self._inconsistencyChanges = {};
+        },
+
+        getInco: function(){
+            var _self = this;
+
+            return _self._inconsistencyChanges;
+        },
+
+        setInco: function(feasibleChanges){
+            var _self = this;
+
+            _self._inconsistencyChanges = feasibleChanges;
+        }
+    });
+})(jQuery);
+
+
+//////////////////////////////////
+//////    MACHBET - Izračuni
+//////////////////////////////////
+
+function MacbethCalculator(){
+
+        var sumnikiMapReverse = {};
+        var sumnikiMapSplx = {};
+
+        MacbethCalculator.calculateMacbeth = function(macData, macOptions){
             // Metoda izračuna in vrne vrednosti kategorij iz podatkov MACBETH, ki so v kriteriju.
 
             var _self = this;
-            // JSLP mora dobiti malo obrnjene omejitve (neenačbe).
+
+            // JSLP (linearni program) mora dobiti malo obrnjene omejitve (neenačbe). (zato metoda _constraintsMatrixToMatrixForSimplex)
             // - na desni so samo konstane.
             // - izraz mora biti poenostavljen.
-            // - PAZI ne sme biti šumnikov!
+            // - PAZI ne sme biti šumnikov (in presledkov, ...)!
 
-            _self.sumnikiMapReverse = {};
-            _self.sumnikiMapSplx = {};
+            sumnikiMapReverse = {};
+            sumnikiMapSplx = {};
 
-            var criterion = $('#dialogMACBETH').DialogMACBETHH('getCurrentCriterion');
-
-            var macData = model.getCriteria(criterion.name).valueFunction.MACBETHData;
-            var macOptions = model.getCriteria(criterion.name).valueFunction.MACBETHOptions;
             var bestCategory = macOptions[0];
             var worstCategory = macOptions[macOptions.length-1];
 
-            var mappedMacbethMatrix = _self._mapDifferences(macData);
-            var constraintsMatrix = _self._createConstraintMatrixFrom(mappedMacbethMatrix);
+            var mappedMacbethMatrix = _mapDifferences(macData);
+            var constraintsMatrix = _createConstraintMatrixFrom(mappedMacbethMatrix);
 
             // Preslikava imen zaradi šumnikov, imen z presledki in posebnmimi znaki.. (x * y)
 
-            constraintsMatrix = _self._mapSumniki(macOptions, constraintsMatrix);
-            bestCategory = _self.sumnikiMapReverse[bestCategory];
-            worstCategory = _self.sumnikiMapReverse[worstCategory];
+            constraintsMatrix = _mapSumniki(macOptions, constraintsMatrix);
+            bestCategory = sumnikiMapReverse[bestCategory];
+            worstCategory = sumnikiMapReverse[worstCategory];
 
-            var matrixForSimplex = _self._constraintsMatrixToMatrixForSimplex(constraintsMatrix, bestCategory, worstCategory);
+            var matrixForSimplex = _constraintsMatrixToMatrixForSimplex(constraintsMatrix, bestCategory, worstCategory);
+
             var basicScale;
             try{
-                basicScale = _self._solveSimplex(matrixForSimplex);
+                basicScale = _solveSimplex(matrixForSimplex);
             }
             catch(ex){
                 if(ex == "Simplex ne najde rešitve za podan problem!"){
@@ -4216,26 +4428,12 @@ function ValueTree(){
             }
             
             // Preslikava nazaj v originalna imena
+            basicScale = _mapSumnikiBack(basicScale);
 
-            basicScale = _self._mapSumnikiBack(basicScale);
-
-            var macbethTransformedScale = _self._transformBasciScale(basicScale);
+            var macbethTransformedScale = _transformBasciScale(basicScale);
             
             // Pridobitev intervalov kategorij.
             var intervals = MacbethIntervalCalculator.calculateIntervalsFor(macbethTransformedScale, mappedMacbethMatrix);
-
-            // Kadar je v panelu dodana kaka kategorije več, pride do tega, da ji ni bil dodeljen noben interval (redko ... če sta dve na novo dodani, in če niso vnešeni novi podatki v macbeth grid...)
-            // Zato tukaj tistim kategorijam, ki niso dobile intervala doda interval od 0 do 0.
-            // Zadeva se bo mogoče kasneje sama uredila, ko bom v macbeth implementiral še prazne vrednosti...
-            macOptions.forEach(function(el, indx){
-                if(!intervals.hasOwnProperty(el)){
-                    
-                    intervals[el] = {
-                        interval: {upperBound: 0, lowerBound: 0},
-                        value: 0
-                    };
-                }
-            });
 
             return {
                 intervalResults: intervals,
@@ -4243,13 +4441,13 @@ function ValueTree(){
                 MACBETHDifferenceMatrix: mappedMacbethMatrix,
                 validResult: true
             }
-        },
+        }
 
-        _mapDifferences: function(macData){
+        this._mapDifferences = function(macData){
             // Metoda mapira macbeth matriko razlik v matriko številčnih vrednosti, ki predstavljajo razliko (njeno moč).
             var _self = this;
 
-            var mapDiff = {};
+            var mapDiff = { "-" : -99};
 
             for(var i = 0; i < macbethDifferenceLabels.length; i++){
                 var diffName = macbethDifferenceLabels[i]; 
@@ -4271,9 +4469,9 @@ function ValueTree(){
             });
 
             return mapedMatrix;
-        },
+        }
 
-        _createConstraintMatrixFrom: function(mapedMatrix){
+        this._createConstraintMatrixFrom = function(mapedMatrix){
             // Metoda naredi seznam omejitev za podano macbeth matriko. (z številčnimi vrednostmi namesto imeni)
             var _self = this;
 
@@ -4301,6 +4499,7 @@ function ValueTree(){
             // Sedaj ima sortirano po razlikah.
             // Prvo naredi omejitve tipa 1: Če x-y > 0, potem dodamo omejitev: v(x) >= v(y) + 1
             // in omejitev tipa2: Če x-y = 0, potem  dodamo omejitev: v(x) = v(y)
+            // Če je prazna celica (vrednost je -99) doda samo ordinalni pogoj (tip 1):  v(x) >= v(y) + 1 oziroma: v(x) - v(y) >= 1, ko se preslika za simplex
             var constraintsMatrix = [];
             sortedMatrix.forEach(function(el, indx){
 
@@ -4309,20 +4508,34 @@ function ValueTree(){
                 if(el.val > 0){
                     str = el.x + " >= " + el.y + " + " + el.val;
                 }
+                else if(el.val == -99){
+                    str = el.x + " >= " + el.y + " + 1";
+                }
                 else if(el.val == 0){
                     str = el.x + " = " + el.y;
                 }
-
+               
                 constraintsMatrix.push(str);
             });
 
-            // Potem naredi omejitve tipa 3: Za vse četvorke x,y,z,w, kjer velja x-y > z-w, dodamo omejitev: v(x)-v(y) >= v(z)-v(w) + (x-y)-(z-w). 
+            // Potem naredi omejitve tipa 3: Za vse četvorke x,y,z,w, kjer velja x-y > z-w, dodamo omejitev: v(x)-v(y) >= v(z)-v(w) + (x-y)-(z-w).
+            // Pogojev tipa 3 za prazne celice ni, zato preskoči (valu == -99)
             for(var i = 0; i < sortedMatrix.length; i++){
 
                 var xy = sortedMatrix[i];
+                
+                if(xy.val == -99){
+                    continue;
+                }
+
                 for(var j = i + 1; j < sortedMatrix.length; j++){
 
                     var zw = sortedMatrix[j];
+
+                    if(zw.val == -99){
+                        continue;
+                    }
+
                     if(xy.val > zw.val){
                         var str = xy.x + ' - ' + xy.y + ' >= ' + zw.x + ' - ' + zw.y + ' + ' + xy.val + ' - ' + zw.val
                         constraintsMatrix.push(str);
@@ -4330,10 +4543,15 @@ function ValueTree(){
                 }
             }
 
-            return constraintsMatrix;
-        },
+            // Odstrani prazne pogoje
+            constraintsMatrix = $.grep(constraintsMatrix, function(cond){
+                return cond.trim().length > 0 
+            });
 
-        _constraintsMatrixToMatrixForSimplex: function(constraintsMatrix, bestCategory, worstCategory){
+            return constraintsMatrix;
+        }
+
+        this._constraintsMatrixToMatrixForSimplex = function(constraintsMatrix, bestCategory, worstCategory){
             // Metoda spremeni (preoblikuje) podno metriko omejitev.
             // Omejitve so primerne za uporabo SIMPLEX algoritma (v JSLPSolver-ju).
             var _self = this;
@@ -4346,7 +4564,7 @@ function ValueTree(){
                 var newLine = "";
 
                 var splitedConstraint = el.split(">=");
-                // Kadar gre za omejitve tipa 2 je omejitev velja v(x) = v(y) kar tukaj spremeni v v(x) - v(y) = 0.
+                // Kadar gre za omejitve tipa 2 je v obliki: v(x) = v(y) kar tukaj spremeni v v(x) - v(y) = 0.
                 if(splitedConstraint.length == 1){
                     var splEq = splitedConstraint[0].split("=");
                     newLine = splEq[0] + "-" + splEq[1] + " = 0";
@@ -4372,6 +4590,7 @@ function ValueTree(){
                         var toLeft = "-" + rspl[0].replace("-", "+");
                         toLeft = toLeft.substring(1, toLeft.length);
 
+                        // console.log(left + "-" + toLeft)
                         var expression = algebra.parse(left + "-" + toLeft);
                         left = expression.toString();
 
@@ -4385,9 +4604,9 @@ function ValueTree(){
             matrixForSimplex.push(worstCategory + " = 0");
 
             return matrixForSimplex;
-        },
+        }
 
-        _solveSimplex: function(simplexMatrix){
+        this._solveSimplex = function(simplexMatrix){
             var _self = this;
 
             var model = solver.ReformatLP(simplexMatrix);
@@ -4395,11 +4614,6 @@ function ValueTree(){
             var result = solver.Solve(model, null, true);
 
             if(!result.feasible){
-                $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                    headerText: 'Warning!',
-                    contentText: 'MACBETH grid is not valid!',
-                    onlyYes: true
-                });
                 throw "Simplex ne najde rešitve za podan problem!";
             }
 
@@ -4412,9 +4626,9 @@ function ValueTree(){
             });
 
             return values;
-        },
+        }
 
-        _transformBasciScale: function(basicScale){
+        this._transformBasciScale = function(basicScale){
             var _self = this;
 
             var max = -1;
@@ -4439,9 +4653,9 @@ function ValueTree(){
             });
 
             return transformedScale;
-        },
+        }
 
-        _mapSumniki: function(macOptions, constraintsMatrix){
+        this._mapSumniki = function(macOptions, constraintsMatrix){
             // Simplex solver ne more prejeti šumnikov, zato se mapira vrednosti.
             var _self = this;
 
@@ -4450,8 +4664,8 @@ function ValueTree(){
 
                 var codeName = "x" + i;
 
-                _self.sumnikiMapSplx[codeName] = option;
-                _self.sumnikiMapReverse[option] = codeName;
+                sumnikiMapSplx[codeName] = option;
+                sumnikiMapReverse[option] = codeName;
 
                 // Preimenovanje v matrki za simplex
                 for(var j = 0; j < constraintsMatrix.length; j++){
@@ -4463,27 +4677,19 @@ function ValueTree(){
             }
 
             return constraintsMatrix;
-        },
+        }
 
-        _mapSumnikiBack: function(basicScale){
+        this._mapSumnikiBack = function(basicScale){
             var _self = this;
 
             for(var i=0; i < basicScale.length; i++){
 
-                basicScale[i].name = _self.sumnikiMapSplx[basicScale[i].name];
+                basicScale[i].name = sumnikiMapSplx[basicScale[i].name];
             }
 
             return basicScale;
         }
-    });
-})(jQuery);
-
-
-
-//////////////////////////////////
-//////    MACHBET - Izračun intervalov
-//////////////////////////////////
-
+}
 
 function MacbethIntervalCalculator(){
 
@@ -4894,45 +5100,6 @@ function MacbethIntervalCalculator(){
         }
     }
 
-    this.checkBoundForConditionOne = function(categoryName, currentSolution, basicScaleObject){
-        // Pridobljen rezultat je pridobljen iz pogoja 2 (Condition 2).
-        // Ta rezultat ne sme kršiti pogoja 1! Tako da preveri še za ta pogoj in po potrebi nastavi novo vrednost.
-        // Pogoj1: vse kategorije, ki jih je uporabnik ocenil kot manj vredne (z rzporeditvijo) morajo imeti na koncu tudi manjšo vrednost!
-        // Ravno tako morajo vse višje kategorije imeti višjo vrednost.
-		
-        var _self = this;
-
-        var categories = Object.keys(basicScaleObject);
-        var catIndx = categories.indexOf(categoryName);
-        if(catIndx == -1){
-            throw "Napaka: za izračun intervala kategorije ni podanih kategorij!";
-        }
-		
-        // Preveri tiste, ki so višje ocenjeni.
-        for(var i=0; i < catIndx; i++){
-			
-            var higherCategoryName = categories[i];
-            var higherValue = basicScaleObject[higherCategoryName];
-
-            if(higherValue < currentSolution){
-                currentSolution = higherValue;
-            }
-        }
-
-        // Preveri tiste, ki so nižje ocenjeni.
-        for(var i=catIndx+1; i < categories.length; i++){
-			
-            var lowerCategoryName = categories[i];
-            var lowerValue = basicScaleObject[lowerCategoryName];
-
-            if(lowerValue > currentSolution){
-                currentSolution = lowerValue;
-            }
-        }
-
-        return currentSolution;
-    }
-
     this.exprStringFor = function(categoryName, categoryNameValFor, basicScale){
 
         if(categoryName == categoryNameValFor){
@@ -4983,10 +5150,12 @@ function MacbethIntervalCalculator(){
         // Metoda vrne vse izraze, ki so izpeljani iz pogoja 2.
 
         // Pogoj dva pravi:
-        // V x,y,w,z € S with (x,y) € Ci and (w,z) € C,:
+        // V x,y,w,z € S with (x,y) € Ci and (w,z) € Cj:
         //   i > j => o(x) - o(y) > o(w) - o(z)
         // Torej: vsi kvadratki v matriki (w,z), ki imajo manjšo vrednost od kvadratka (x,y) -> razlika med vrednosjo razlik basicScale(x) - basicScale(y)
         // mora biti večja od razlike basicScale(w) - basicScale(z)
+
+        // Vrednost -99 je dodeljena praznim celicam (neocenjenim oz. positive...) ... jih preskoči ali
 
         var _self = this;
 
@@ -5003,12 +5172,28 @@ function MacbethIntervalCalculator(){
                 pairName = interval.lowerElement;
             }
 
-            // Razlika, ki jo je uporabnik dodelil med ti dve kategoriji (številska).
-            var macbethDifference = macbethMatrix[interval.upperElement][interval.lowerElement];
+            try{
+                // Razlika, ki jo je uporabnik dodelil med ti dve kategoriji (številska).
+                var macbethDifference = macbethMatrix[interval.upperElement][interval.lowerElement];
 
-            // Pari, ki jim je uporabnik dodelil večjo vrednost kot trenutnemo paru (na intervalu).
+                if(macbethDifference == -99){
+
+                    var first = exprStringFor(categoryName, interval.upperElement, basicScaleObject);
+                    var second = exprStringFor(categoryName, interval.lowerElement, basicScaleObject);
+
+                    var exp1 = first + ' = ' + second;
+
+                    expressions.push(exp1);
+                    continue;
+                }
+            }
+            catch(e){
+                throw e;
+            }
+
+            // Pari, ki jim je uporabnik dodelil večjo vrednost kot trenutnemu paru (na intervalu).
             var uppers = getUpperPairs(macbethMatrix, macbethDifference);
-            // Pari, ki jim je uporabnik dodelil manjšo vrednost kot trenutnemo paru (na intervalu).
+            // Pari, ki jim je uporabnik dodelil manjšo vrednost kot trenutnemu paru (na intervalu).
             var lowers = getLowerPairs(macbethMatrix, macbethDifference);
 
             var el1 = exprStringFor(categoryName, interval.upperElement, basicScaleObject);
@@ -5017,6 +5202,10 @@ function MacbethIntervalCalculator(){
             var expressionLeftPart = el1 + " - " + el2 + " = "
             for(var j = 0; j < lowers.length; j++){
                 var lower = lowers[j];
+
+                if(lower.value == -99){
+                    continue;
+                }
 
                 // Če je kategorije za katero se izše interval se na njenih mestih ne pojavi številka ampak ime kot spremenljivka.
                 var el3 = exprStringFor(categoryName, lower.name1, basicScaleObject);
@@ -5032,6 +5221,10 @@ function MacbethIntervalCalculator(){
             for(var j = 0; j < uppers.length; j++){
                 var upper = uppers[j];
 
+                if(upper.value == -99){
+                    continue;
+                }
+                
                 // Če je kategorija za katero se izše interval se na njenih mestih ne pojavi številka ampak ime kot spremenljivka.
                 var el3 = exprStringFor(categoryName, upper.name1, basicScaleObject);
                 var el4 = exprStringFor(categoryName, upper.name2, basicScaleObject);
@@ -5040,9 +5233,56 @@ function MacbethIntervalCalculator(){
 
                 expressions.push(exp);
             }
+
+            // Doda še pogoje, ki narekujejo, da interval ne sme biti manjši od spodnjega elmenta na lestvici.  (oz. večji od zgornjega ...)
+            var leftExp = exprStringFor(categoryName, interval.upperElement, basicScaleObject);
+            var rightExp = exprStringFor(categoryName, interval.lowerElement, basicScaleObject);
+
+            var exp3 = leftExp + ' = ' + rightExp;
+
+            expressions.push(exp3);
         }
 
         return expressions;
+    }
+
+    this.checkBoundForConditionOne = function(categoryName, currentSolution, basicScaleObject){
+        // Pridobljen rezultat je pridobljen iz pogoja 2 (Condition 2).
+        // Ta rezultat ne sme kršiti pogoja 1! Tako da preveri še za ta pogoj in po potrebi nastavi novo vrednost.
+        // Pogoj1: vse kategorije, ki jih je uporabnik ocenil kot manj vredne (z rzporeditvijo) morajo imeti na koncu tudi manjšo vrednost!
+        // Ravno tako morajo vse višje kategorije imeti višjo vrednost.
+        
+        var _self = this;
+
+        var categories = Object.keys(basicScaleObject);
+        var catIndx = categories.indexOf(categoryName);
+        if(catIndx == -1){
+            throw "Napaka: za izračun intervala kategorije ni podanih kategorij!";
+        }
+        
+        // Preveri tiste, ki so višje ocenjeni.
+        for(var i=0; i < catIndx; i++){
+            
+            var higherCategoryName = categories[i];
+            var higherValue = basicScaleObject[higherCategoryName];
+
+            if(higherValue < currentSolution){
+                currentSolution = higherValue;
+            }
+        }
+
+        // Preveri tiste, ki so nižje ocenjeni.
+        for(var i=catIndx+1; i < categories.length; i++){
+            
+            var lowerCategoryName = categories[i];
+            var lowerValue = basicScaleObject[lowerCategoryName];
+
+            if(lowerValue > currentSolution){
+                currentSolution = lowerValue;
+            }
+        }
+
+        return currentSolution;
     }
 
     this.getLowerPairs = function(mapped, value){
@@ -5063,6 +5303,7 @@ function MacbethIntervalCalculator(){
                 var diffValue = mapped[kat1Name][kat2Name];
 
                 if(diffValue < value){
+
                     lowersResult.push({
 
                         name1: kat1Name,
@@ -5125,7 +5366,7 @@ function MacbethIntervalCalculator(){
                 var res = exprRes.numer / exprRes.denom;
 
                 solutions.push(res);
-                // console.log(expression);
+                //console.log(expression);
             }
             catch(ex){
                 if(ex.message == "No Solution"){
@@ -5207,6 +5448,110 @@ function MacbethIntervalCalculator(){
     }
 }
 
+function MacbethInconsistencyChecker(){
+
+    MacbethInconsistencyChecker.checkMacbethMatrix = function(macData, macOptions){
+        // Metoda preveri konsistentnost macbeth podatkov. V primeru nekonsistentnosti 
+        // z poskušanjem išče možne spremembe, ki bi spremenile podatke v konsistentne.
+        var macResult = MacbethCalculator.calculateMacbeth(macData, macOptions);
+
+        if(macResult.validResult == true){
+            return {
+                feasibleChanges: {},
+                isConsistent: true
+            };
+        }
+
+        var feasibleChanges = {};
+
+        for(var rowName in macData){
+            var row = macData[rowName];
+
+            for(var colName in row){
+                var cellValue = row[colName];
+
+                // if(cellValue == '-'){
+                //     continue;
+                // }
+
+                // var indexOfCellValue = macbethDifferenceLabels.indexOf(cellValue);
+
+                var indexOfCellValue;
+                if(cellValue == '-'){
+                    indexOfCellValue = macbethDifferenceLabels.length;
+                }
+                else{
+                    indexOfCellValue = macbethDifferenceLabels.indexOf(cellValue);                    
+                }
+
+                // Sprva testira konsistentost z premikom razlike za ena potem dva, tri, ... (navzgor in navzdol)
+                var stepSizeUp = 1;
+                var indexOfTryValueUp = indexOfCellValue - stepSizeUp;
+                var indexOfTryValueDown = indexOfCellValue + stepSizeUp;
+                while(indexOfTryValueUp >= 0 || indexOfTryValueDown < macbethDifferenceLabels.length - 1){
+
+                    // TESTIRANJE NAVZGOR
+                    if(indexOfTryValueUp >= 0){
+                        var tryResultUp = tryConsistency(macData, macOptions, rowName, colName, indexOfTryValueUp);
+
+                        // Če je najedena konsistenta sprememba jo zapiše in trenutne celice več ne preiskuje.
+                        if(tryResultUp != null){
+                            tryResultUp.direction = "up";
+                            feasibleChanges[rowName + '-' + colName] = tryResultUp;
+                            break;
+                        }
+                        // Indexi za na gor se odštevajo, saj je v seznamu macbethDifferenceLabels najmočnejša razlika na prvem mestu...
+                        indexOfTryValueUp -= 1;
+                    }
+                    
+                    // TESTIRANJE NAVZDOL
+                    if(indexOfTryValueDown < macbethDifferenceLabels.length - 1){
+
+                        var tryResultDown = tryConsistency(macData, macOptions, rowName, colName, indexOfTryValueDown);
+
+                        if(tryResultDown != null){
+                            tryResultDown.direction = "down";
+                            feasibleChanges[rowName + '-' + colName] = tryResultDown;
+                            break;
+                        }
+                        // Indexi za navzdol se odštevajo, saj je v seznamu macbethDifferenceLabels najmočnejša razlika na prvem mestu...
+                        indexOfTryValueDown += 1;
+                    }
+                }
+            }
+        }
+
+        return {
+            feasibleChanges: feasibleChanges,
+            isConsistent: false
+        };
+    }
+
+    this.tryConsistency = function(macData, macOptions, rowName, colName, indexOfTryValue){
+
+        var tryValue = macbethDifferenceLabels[indexOfTryValue];
+
+        var originalValue = macData[rowName][colName];
+        macData[rowName][colName] = tryValue;
+
+        var macResult = MacbethCalculator.calculateMacbeth(macData, macOptions);
+
+        macData[rowName][colName] = originalValue;
+
+        if(macResult.validResult){
+
+            return {
+                rowName: rowName,
+                colName: colName,
+                differenceIndex: indexOfTryValue,
+                differenceValue: tryValue
+            };
+        }
+
+        return null;
+    }
+}
+
 
 //////////////////////////////////
 //////      DIALOG WEIGHTS
@@ -5238,17 +5583,18 @@ function MacbethIntervalCalculator(){
                 position: 'center',
                 initContent: function(){
 
+                    $('#btnShowAllWeights').jqxButton({width:95});
+                    $('#btnShowAllWeights').on('click', function(){
+
+                        _self._saveAndUpdateInput();
+
+                        $('#dialogAllWeight').DialogAllWeights('open');
+                    });
+
                     $('#btnSaveWeight').jqxButton({width:55});
                     $('#btnSaveWeight').on('click', function(){
 
-                        // Shrani podatke, ki jih je vnesel uporabnik.
-                        $('#weightsPanel').weightsPanel('save');
-
-                        // Preračuna normalizirane uteži.
-                        // Prvo preračuna na nivoju levela. (Na vozliščih, ki jim je uporabnik nastavljal uteži)
-                        // Potem pa končno utež za analizo na celotnem poddreveseu vozlišča.
-                        model.normalizeLevelWeightsOnNode(_self.criterion);
-                        model.normalizeFinalWeightRecursivelyOnChildrenOf(_self.criterion);
+                       _self._saveAndUpdateInput();
 
                         $('#dialogWeight').jqxWindow('close');
                     });
@@ -5291,6 +5637,19 @@ function MacbethIntervalCalculator(){
             $('#weightsPanel').weightsPanel('refresh');
         },
 
+        _saveAndUpdateInput: function(){
+            var _self = this;
+
+            // Shrani podatke, ki jih je vnesel uporabnik.
+            $('#weightsPanel').weightsPanel('save');
+
+            // Preračuna normalizirane uteži.
+            // Prvo preračuna na nivoju levela. (Na vozliščih, ki jim je uporabnik nastavljal uteži)
+            // Potem pa končno utež za analizo na celotnem poddreveseu vozlišča.
+            model.normalizeLevelWeightsOnNode(_self.criterion);
+            model.normalizeFinalWeightRecursivelyOnChildrenOf(_self.criterion);
+        },
+
         getAllCireteriaUnder: function(node){
             // Metoda pridobi vozlišča, ki jih v podanem vozlišču utežujemo. 
 
@@ -5299,7 +5658,7 @@ function MacbethIntervalCalculator(){
             if(typeof(node.children) == 'undefined'){
 
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                    contentText: "Node doesn't contain any children!",
+                    contentText: "Vozlišče ne vsebuje nobenega otroka!",
                     onlyYes: true,
                     yesAction: function(){}
                 })
@@ -5355,23 +5714,45 @@ function MacbethIntervalCalculator(){
 
                 var pnlContent = "" + 
                     "<div class='weightsPanelContent'>" +
-                    "<div class='weightPanelName'>" +
-                        "<div class='weightedCriteriaText'>Criterion:</div>" +
-                        "<div class='weightedNodeText'>N: " + this._abbreviateForName(obj.weightedCriteria.name) + "</div>" +
-                    "</div>" +
-                    "<div class='weightPanelSwing'>" +
-                    "</div>" +
-                    "<div class='weightPanelWeight'>" +
-                            obj.weightedCriteria.userWeight +
-                    "</div>" +
-                    "<div class='weightPanelSliderHolder slider-demo-slider-container'>" +
-                        "<div class='weightSlider' class='weightPanelSlider'></div>" +
-                    "</div>" +
-                    "</div>" +
+                        "<div class='weightPanelName'>" +
+                            "<div class='weightedCriteriaText'>Kriterij:</div>" +
+                            "<div class='weightedNodeText'>" + this._abbreviateForName(obj.weightedCriteria.name) + "</div>" +
+                        "</div>" +
+                        "<div class='weightPanelSwing'>" +
+                        "</div>" +
+                        "<div class='weightPanelWeighte'>" +
+                            "<input class='weightPanelWeight' type='text' maxlength='100' value='" +  obj.weightedCriteria.userWeight  + "'/>" + 
+                        "</div>" +
+                        "<div class='weightPanelSliderHolder slider-demo-slider-container'>" +
+                            "<div class='weightSlider' class='weightPanelSlider'></div>" +
+                        "</div>" +
                     "</div>";
 
                     $('#weightsPanelLayoutDiv').append(pnlContent);
             }
+
+            $('#weightsPanelLayoutDiv .weightPanelWeight').on('change', function(event){
+                // Kadar uporabnik vpiše vrednost uteži ročno skozi textbox, je potrebno vpisano vrednost nastaviti pripadajočemu slider-ju.
+                var insertedValue = event.target.value;
+                var slider = $(event.target).parents('.weightsPanelContent').find('.weightSlider');
+                var sliderValue = slider.jqxSlider('val');
+
+                if( ! $.isNumeric(insertedValue) ){
+                    $(event.target).val(sliderValue);
+                    return;
+                }
+                
+                insertedValue = parseInt(insertedValue);
+                if(insertedValue > 100){
+                    insertedValue = 100;
+                }
+                else if(insertedValue < 0){
+                    insertedValue = 0;
+                }
+
+                slider.jqxSlider('setValue', insertedValue);
+                $(event.target).val(insertedValue);
+            });
 
             // Nastavitev in pridobitev končne širine dodanih panelov za nastaljanje uteži.
             var widthOfweightsPanelContent = parseInt($(".weightsPanelContent").css("width"));
@@ -5416,14 +5797,14 @@ function MacbethIntervalCalculator(){
             $('.weightSlider').on('change', function(event){
                 var textDiv = $(event.target.parentNode.parentNode.getElementsByClassName("weightPanelWeight"));
                 var val = parseInt(event.args.value)
-                textDiv.html(val);
+                textDiv.val(val);
             });
         },
 
         _abbreviateForName: function(str){
             if(str.length > 8)
             {
-                str = $.trim(str.substring(0, 6)) + "."
+                str = $.trim(str.substring(0, 8)) + "."
             }
             return str;
         },
@@ -5437,6 +5818,211 @@ function MacbethIntervalCalculator(){
             }
         },
 
+    });
+})(jQuery);
+
+
+//////////////////////////////////
+//////      DIALOG ALL WEIGHTS 
+//////////////////////////////////
+
+(function( $ ){
+
+    $.widget("myWidget.DialogAllWeights", {
+
+        options: {
+            width: 600,
+            height: 480,
+        },
+
+        criterion: {},
+
+        _create: function(criterion){
+            var _self = this;
+
+            var dialogWeHeight = 380;
+            var dialogWeWidth = 600;
+            $("#dialogAllWeight").jqxWindow({
+                height: dialogWeHeight,
+                width: dialogWeWidth,
+                resizable: true,
+                isModal: true,
+                autoOpen: false,
+                draggable: true,
+                position: 'center',
+                initContent: function(){
+
+                    $('#btnCloseAllWeights').jqxButton({width:55});
+                    $('#btnCloseAllWeights').on('click', function(){
+                         $('#dialogAllWeight').jqxWindow('close');
+                    });
+
+                    _self.refreshGrid();
+                    
+                },
+            });
+        },
+
+        open: function(criterion){
+            var _self = this;
+
+            _self.criterion = criterion;
+
+            _self._refreshDialog();
+
+            $("#dialogAllWeight").jqxWindow('open');
+        },
+
+        close: function(){
+            // Resetiranje gradnikov.
+     
+            $('#dialogAllWeight').jqxWindow('close');
+        },
+
+        refreshGrid: function(){
+            var _self = this;
+
+            var gridData = _self._generateAllWeightsGridData();
+
+            $('#allWeightsGrid').jqxGrid({
+                source: gridData.dataAdapter,
+                width: 550,
+                height: 250,
+                autoheight: false,
+                columns: gridData.columns,
+                columnsresize: true,
+                editable: false,
+                pageable: false,
+                pagermode: 'simple',
+                pagesize: 10,
+                enablemousewheel: false
+            });
+        },
+
+        _refreshDialog: function(){
+            var _self = this;
+
+            _self.refreshGrid();
+        },
+
+        _generateAllWeightsGridData: function(){
+            // Zgenerira podatke za grid popupa all weights...
+            var _self = this;
+
+            // GENERIRANJE STOLPCEV.
+            var cellsCenterRenderer = function(row, columnfield, value, defaulthtml, columnproperties){
+                return '<div style="text-align:center;">' + value + '</div>';
+            }
+
+            var columns = [];
+            columns.push({
+                width: 155,
+                text: "Kriterij",
+                datafield: "name"
+            });
+            columns.push({
+                width: 90,
+                text: "Končna utež",
+                datafield: "finalNormalizedWeight",
+                cellsrenderer: function(row, columnfield, value, defaulthtml, columnproperties){
+                    return '<div style="text-align:center;">' + parseFloat(value).myRound(3) + '</div>';
+                }
+            });
+            columns.push({
+                width: 90,
+                text: "Relativna utež",
+                datafield: "levelNormalizedWeight",
+                cellsrenderer: function(row, columnfield, value, defaulthtml, columnproperties){
+                    return '<div style="text-align:center;">' + parseFloat(value).myRound(3) + '</div>';
+                }
+            });
+            columns.push({
+                width: 65,
+                text: "Min",
+                datafield: "minValue",
+                cellsrenderer: cellsCenterRenderer
+            });
+            columns.push({
+                width: 65,
+                text: "Max",
+                datafield: "maxValue",
+                cellsrenderer: cellsCenterRenderer
+            });
+            columns.push({
+                width: 85,
+                text: "Tip skale",
+                datafield: "scaleType",
+                cellsrenderer: cellsCenterRenderer
+            });
+
+
+            // GENERIRANJE DATA ADAPTERJA.
+            model.refreshMinMaxValueOFAllRelativeCriteria();
+
+            var datFields = [ {name: 'name', type: 'string'}, {name:'finalNormalizedWeight', type:'string'}, {name:'levelNormalizedWeight', type:'string'},
+            , {name:'minValue', type:'string'}, {name:'maxValue', type:'string'}, {name:'scaleType', type:'string'}];
+
+            var allWeightsGridData = [];
+
+            var allNodes = model.getNodesToList();
+            allNodes.forEach(function(node){
+                if(node.type == 'criterion'){
+
+                    var minVal = node.minValue;
+                    var maxVal = node.maxValue;
+
+                    // Diskratnim kriterijem namesto vrednosti 0 in 100 do najboljšo in najslabšo vrednost.
+                    if(node.scaleType == 'fixed' && node.valFuncType == 'discrete' && typeof(node.valueFunction) != 'undefined'){
+
+                        var categories = node.valueFunction.categories;
+                        if(typeof(categories) != 'undefined'){
+                            
+                            var min = 100;
+                            var max = 0;
+
+                            for (var catName in categories){
+                                var value = parseFloat(categories[catName]);
+                                
+                                if(value > max){
+                                    maxVal = catName;
+                                    max = value;
+                                }
+                                if(value < min){
+                                    minVal = catName;
+                                    min = value;
+                                }
+                            }
+                        }
+                    }
+
+                    allWeightsGridData.push({
+                        name: node.name,
+                        finalNormalizedWeight: parseFloat(node.finalNormalizedWeight) * 100,
+                        levelNormalizedWeight: parseFloat(node.levelNormalizedWeight) * 100,
+                        minValue: minVal,
+                        maxValue: maxVal,
+                        scaleType: node.scaleType
+                    });
+                }
+            });
+
+            // var filteredNodes = $.grep(allNodes, function(node){ 
+            //     return node.type == 'criterion'
+            // });
+
+            var source = {
+                localdata: allWeightsGridData,
+                datafields: datFields,
+                datatype: 'array',
+            };
+        
+            var dataAdapter = new $.jqx.dataAdapter(source);
+
+            return {
+                columns: columns,
+                dataAdapter: dataAdapter
+            };
+        },
     });
 })(jQuery);
 
@@ -5498,11 +6084,11 @@ function MacbethIntervalCalculator(){
             _self.options = {
                 width: 450,
                 height: 160,
-                headerText: "Warning",
+                headerText: "Opozorilo!",
                 contentText: "",
                 onlyYes: false,
-                yesButtonText: "OK",
-                noButtonText: "No",
+                yesButtonText: "V redu",
+                noButtonText: "Prekliči",
                 throwException: false,
                 yesAction: function(){
                 },
@@ -5607,16 +6193,16 @@ function MacbethIntervalCalculator(){
                 initContent: function(){
                     // Inicializacija kontrol dialoga.
                     $('#btnSaveModelYes').jqxButton({
-                        width: 55,
+                        width: 65,
                     });
                     $('#btnSaveModelNo').jqxButton({
-                        width: 55,
+                        width: 65,
                     });
                     $("#tfModelName").jqxInput({height: 19, width: 250});
 
                     $('#formSaveModel').jqxValidator({
                         rules: [
-                            { input: '#tfModelName', message: 'Field is required!', action: 'keyup, blur', rule: 'required' }
+                            { input: '#tfModelName', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' }
                         ]
                     });
 

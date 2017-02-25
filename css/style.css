@@ -70,6 +70,20 @@ svg{
     overflow: auto;
 }
 
+
+
+.popUpHeader{
+    width:100%;
+}
+
+.headerSpan{
+    width:100%;
+    text-align: center;
+}
+
+
+
+
 #gridVariants
 {
     margin-left: auto;
@@ -120,6 +134,10 @@ svg{
     /*margin-top: 2px;*/
     float: left;
 }
+#headerCritDet{
+    width:100%;
+    text-align: center;
+}
 #weightsPanelLayoutDiv{
     height: calc(100% - 4px);
 }
@@ -153,6 +171,11 @@ svg{
 }
 .weightPanelWeight{
     /*background-color: #0FF;*/
+    display: block;
+    width:100%;
+    border:none;
+    border-top: solid 2px #b3b3b3;
+    border-bottom: solid 2px #b3b3b3;
     text-align: center;
     margin: 0;
     font-family: times, Times New Roman, times-roman, georgia, serif;
@@ -333,4 +356,12 @@ svg{
 
 .MCUnderDiagonalCell{
     background-color: rgba(220,220,220, 0.43) !important;
+}
+
+.MCCellInconsistentUp{
+    background-color: #ffccbb !important;
+}
+
+.MCCellInconsistentDown{
+    background-color: #8db7f6 !important;   
 }

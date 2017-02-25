@@ -11,7 +11,7 @@
         <!-- <link rel="stylesheet" href="css_lib/jsxgraph.css" type="text/css" /> 
         <script type="text/javascript" src="ib/jsxgraphcore.js"></script> -->
 
-        <link rel="stylesheet" href="css_lib/jquery-ui.css" type="text/css" />
+        <!-- <link rel="stylesheet" href="css_lib/jquery-ui.css" type="text/css" />  -->
 
         <!-- load the d3.js library -->	
         <script src="js_lib/d3.min.js"></script>
@@ -69,7 +69,7 @@
         <!-- importanje glede excela -->
         <script type="text/javascript" src="js_lib/xls.js"></script>
         <script type="text/javascript" src="js_lib/xlsx.core.min.js"></script>
-        <script type="text/javascript" src="js_lib/jszip.js"></script>
+        <!-- <script type="text/javascript" src="js_lib/jszip.js"></script> -->
         
         <!-- importanje JSLPSOlver-ja. -->
         <script type="text/javascript" src="js_lib/js_lp_solver/solver.js"></script>
@@ -232,19 +232,19 @@
         <!--Div je uporabljen za popup Criteria create... (pri kreiranju kriterijev) -->
         <div id='dialogCriteriaDetails'>
             <div id='headerCritDet'>
-                <span style='margin-left:150px'>Criterion details</span>
+                <span>Podrobnosti kriterija</span>
             </div>
             <div id='contentCritDet' style='padding-top:20px; background-color:#EEF0F1;'>
                 <div id='bodyCritDet' style='margin-left:auto; margin-right:auto; width:260px;'>
                     <form id='formCriteriaDetails'>
                         <div class='criteriaSpecification'>
-                            <label>Name: </label>
+                            <label>Ime: </label>
                             <div>
                                <input id="tfName" type="text" maxlength="100" style="width: 250px"/>
                             </div>
                         </div>
                         <div class='criteriaSpecification'>
-                            <label>Scale type: </label>
+                            <label>Tip skale: </label>
                             <div>
                                 <select id='selScaleType' style="width:180px;">
                                   <option value="relative">Relative</option>
@@ -254,7 +254,7 @@
                             </div>
                         </div>
                         <div class='criteriaSpecification'>
-                            <label>Value function type: </label>
+                            <label>Tip funkcije koristnosti: </label>
                             <div>
                                 <select id='selValFuncType' style="width:180px;">
                                 </select>
@@ -273,13 +273,13 @@
                             </div>
                         </div>
                         <div class='criteriaSpecification'>
-                            <label>Inverse scale: </label>
+                            <label>Obratna skala: </label>
                             <div>
                                 <input id="cbInverse" type="checkbox" value="inverse checkbox"/>
                             </div>
                         </div>
                         <div class='criteriaSpecification'>
-                            <label>Description: </label>
+                            <label>Opis: </label>
                             <div>
                                 <textarea id="taDescription" style="width: 250px;height:70px; resize: none;"></textarea>
                             </div>
@@ -287,8 +287,8 @@
                     </div>
 
                     <div class="footerCritDet" style='float:right;margin-right:73px;margin-top:25px;'>
-                        <input id='btnCloseCritDet' type='button' value='Close'>
-                        <input id='btnSaveCritDet' type='button' value='Save'>
+                        <input id='btnSaveCritDet' type='button' value='Shrani'>
+                        <input id='btnCloseCritDet' type='button' value='Prekliči'>
                     </div>
                 </form>
             </div>
@@ -297,27 +297,27 @@
         <!-- Div za popup kreiranja noda. (vozlišča tipa node) --> 
         <div id='dialogNodeDetails'>
             <div id='headerCritDet'>
-                <span style='margin-left:150px'>Node details</span>
+                <span>Podrobnosti vozlišča</span>
             </div>
             <div id='contentCritDet' style='padding-top:20px; background-color:#EEF0F1;'>
                 <form ID='formNodeDetails'>
                     <div id='bodyCritDet' style='margin-left:auto; margin-right:auto; width:260px;'>
                         <div class='criteriaSpecification'>
-                            <label>Name: </label>
+                            <label>Ime: </label>
                             <div>
                                <input id="tfNameNode" type="text" maxlength="100" style="width: 250px"/>
                             </div>
                         </div>
                         <div class='criteriaSpecification'>
-                            <label>Description: </label>
+                            <label>Opis: </label>
                             <div>
                                 <textarea id="taDescriptionNode" style="width: 250px;height:70px; resize: none;"></textarea>
                             </div>
                         </div>
                     </div>
                     <div class="footerCritDet" style='float:right;margin-right:73px;margin-top:25px;'>
-                        <input id='btnCloseNodeCreate' type='button' value='Close'>
-                        <input id='btnSaveNodeCreate' type='button' value='Save'>
+                        <input id='btnSaveNodeCreate' type='button' value='Shrani'>
+                        <input id='btnCloseNodeCreate' type='button' value='Prekliči'>
                     </div>
                 </form>
             </div>
@@ -326,7 +326,7 @@
         <!-- Div za popup urejanje value function (piecewise) -->
         <div id='dialogValFuncPiecewise'>
             <div id='headerCritDet'>
-                <span style='margin-left:200px'>Piecewise value function.</span>
+                <span>Odsekovna funkcija koristnosti.</span>
             </div>
             <div id='contentValFuncPiecewise' style='background-color:#EEF0F1;'>
                 <div id='dialogValFuncPiecewiseBody' style='padding-top:20px;'>
@@ -334,7 +334,7 @@
 
                     </div>
                     <div style='display:block;width:400px;height:50px;padding-top:7px;margin-left:auto;margin-right:auto;'>
-                        <label style='float:left;'>Number of points: </label>
+                        <label style='float:left;'>Število točk: </label>
                         <div style='float:left; margin-left:5px;'>
                             <select id='selNumOfPointsPiecewise' style="width:80px;">
                                 <option value="4">4</option>
@@ -345,21 +345,21 @@
                             </select>
                         </div>
                         <div style="float:right;">
-                            <input id='btnResetPiecewiseGraph' type='button' value='Reset graph'/>
+                            <input id='btnResetPiecewiseGraph' type='button' value='Ponastavi graf'/>
                         </div>
                     </div>
                     <div class="footerValFuncPiecewise" style='width:400px;margin-left:auto;margin-right:auto;padding-top:10px;'>
-                        <input id='btnSavePiecewise' type='button' value='Save' style='float:right;'>
-                        <input id='btnClosePiecewise' type='button' value='Close' style='float:right;margin-right:7px;'>
+                        <input id='btnClosePiecewise' type='button' value='Prekliči' style='float:right;'>
+                        <input id='btnSavePiecewise' type='button' value='Shrani' style='float:right;margin-right:7px;'>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Div za popup urejanje value function (piecewise) -->
+        <!-- Div za popup urejanje value function (linear) -->
         <div id='dialogValFuncLinear'>
             <div id='headerValFuncLinear'>
-                <span style='margin-left:200px'>Linear value function.</span>
+                <span>Linearna funkcija koristnosti.</span>
             </div>
             <div id='contentValFuncLinear' style='background-color:#EEF0F1;'>
                 <div id='dialogValFuncLinearBody' style='padding-top:20px;'>
@@ -367,7 +367,7 @@
 
                     </div>
                     <div class="footerValFuncLinear" style='width:400px;margin-left:auto;margin-right:auto;padding-top:10px;'>
-                        <input id='btnCloseLinear' type='button' value='Close' style='float:right;margin-right:7px;'>
+                        <input id='btnCloseLinear' type='button' value='Zapri' style='float:right;margin-right:7px;'>
                     </div>
                 </div>
             </div>
@@ -376,7 +376,7 @@
         <!-- Div za popup urejanje value function (discrete) -->
         <div id='dialogValFuncDiscrete'>
             <div id='headerCritDet'>
-                <span style='margin-left:140px'>Discrete value function.</span>
+                <span>Diskretna funkcija koristnosti.</span>
             </div>
             <div id='contentValFuncDiscrete' style='background-color:#EEF0F1;'>
                 <div id='dialogValFuncDiscreteBody' style='padding-top:20px;'>
@@ -384,12 +384,12 @@
                         <form id="formValFuncDiscrete" onsubmit='return false;'>
                             <table>
                                 <tr>
-                                    <td><span style='display:block;float:left;'>Category name:</span></td>
+                                    <td><span style='display:block;float:left;'>Ime kategorije:</span></td>
                                     <td><div id="cobCategoryName"></div></td>
                                 </tr>
                                 <tr>
                                     <td>&nbsp</td>
-                                    <td><input id='btnAddCategory' type='button' value='Add category' style='float:right;margin-top:10px;'></td>
+                                    <td><input id='btnAddCategory' type='button' value='Dodaj kategorijo' style='float:right;margin-top:10px;'></td>
                                 </tr>
                             </table>
                         </form>
@@ -419,8 +419,8 @@
                     <input id='btnPopUpMACBETH' type='button' value='MACBETH' style='margin-top:10px;margin-left:10px;'>
 
                     <div class="footerValFuncDiscrete" style='width:450px;margin:auto;margin-top:30px;'>
-                        <input id='btnSaveDiscrete' type='button' value='Save' style='float:right;'>
-                        <input id='btnCloseDiscrete' type='button' value='Close' style='float:right;margin-right:7px;'>
+                        <input id='btnCloseDiscrete' type='button' value='Prekliči' style='float:right;'>
+                        <input id='btnSaveDiscrete' type='button' value='Shrani' style='float:right;margin-right:7px;'>
                     </div>
                 </div>
             </div>
@@ -429,57 +429,40 @@
         <!-- Div za popup uteži -->
         <div id='dialogWeight'>
             <div id='headerCritDet'>
-                <span style='margin-left:150px'>Weights</span>
+                <span>Uteževanje</span>
             </div>
             <div id='contentValFuncPiecewise' style='background-color:#EEF0F1;'>
                 <div id='dialogWeightsBody' style='padding-top:20px;'>
                     <div id='weights'>
                         <div id='weightsPanel' style='margin-right:auto;margin-left:auto;'>
                             <div id='weightsPanelLayoutDiv'>
-                                <!-- <div class='weightsPanelContent'>
-                                    <div class='weightPanelName'>
-                                        <span>Cena (Cena)</span>
-                                    </div>
-                                    <div class='weightPanelSwing'>
-                                        <table class='weightPanelSwingTable'>
-                                            <tr>
-                                                <td>
-                                                    Min
-                                                </td>
-                                                <td>
-                                                    &nbsp
-                                                </td>
-                                                <td>
-                                                    Max
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td align='center'>
-                                                    0
-                                                </td>
-                                                <td>
-                                                    -
-                                                </td>
-                                                <td>
-                                                    100
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                    <div class='weightPanelWeight'>
-                                        68
-                                    </div>
-                                    <div class='weightPanelSliderHolder'>
-                                        <div id='slider' class='weightPanelSlider'></div>
-                                    </div>
-                                </div> -->
                             </div>
                         </div>
                     </div>
-                    <div class="footerValFuncPiecewise" style='width:400px;margin-left:auto;margin-right:auto;padding-top:45px;'>
-                        <input id='btnSaveWeight' type='button' value='Update' style='float:right;'>
-                        <input id='btnCloseWeight' type='button' value='Close' style='float:right;margin-right:7px;'>
+                    <div style='width:400px;margin-left:auto;margin-right:auto;padding-top:5px;'>
+                        <input id='btnShowAllWeights' type='button' value='Pregled uteži'>
                     </div>
+                    <div class="footerValFuncPiecewise" style='width:400px;margin-left:auto;margin-right:auto;padding-top:25px;'>
+                        <input id='btnCloseWeight' type='button' value='Prekliči' style='float:right;'>
+                        <input id='btnSaveWeight' type='button' value='Shrani' style='float:right;margin-right:7px;'>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Div za popup pregled uteži atributov -->
+        <div id='dialogAllWeight'>
+            <div id='headerCritDet'>
+                <span>Uteži vseh atributov</span>
+            </div>
+            <div id='contentAllWeights' style='background-color:#EEF0F1;'>
+                <div id='dialogAllWeightsBody' style='padding-top:20px;'>
+                    <div id='allWeights'>
+                       <div id='allWeightsGrid' style='margin:auto;'>
+
+                       </div>
+                    </div>
+                    <input id='btnCloseAllWeights' type='button' value='Zapri' style='float:right;margin-right:10px;margin-top:35px;'>
                 </div>
             </div>
         </div>
@@ -496,8 +479,8 @@
                     <span style='display:block; margin-bottom:30px; padding-top:4px;'>Kriterij z podanim imenom že obstaja.</span>
                 </div>
                 <div class='dialogYesNoFooter' style='margin-top:35px; margin-right:25px;'>
-                    <input id='btnYesNoMessageYes' type='button' value='OK' style='float:right; margin-left:20px;'></input>
-                    <input id='btnYesNoMessageNo' type='button' value='No' style='float:right; margin-left:20px;'></input>
+                    <input id='btnYesNoMessageNo' type='button' value='Prekliči' style='float:right; margin-left:20px;'></input>
+                    <input id='btnYesNoMessageYes' type='button' value='V redu' style='float:right; margin-left:20px;'></input>
                 </div>
             </div>
         </div>
@@ -506,19 +489,19 @@
         <div id='dialogSaveModel'>
             <div class="dialogSaveModelHeadere"> 
                 <span>
-                    Saving
+                    Shranjevanje
                 </span>
             </div>
             <div class="dialogSaveModelContent" style='background-color:#EEF0F1;'>
                 <form id='formSaveModel'>
                     <div class='dialogSaveModelBody' style='margin-top:25px;margin-left:30px;'>
-                        <span style='display:block; margin-bottom:10px; padding-top:4px;'>Insert models name.</span>
+                        <span style='display:block; margin-bottom:10px; padding-top:4px;'>Vnesite ime datoteke.</span>
                         <input id="tfModelName" type="text" maxlength="100" style="width: 250px"/>
                         <span>.json</span>
                     </div>
                     <div class='dialogYesNoFooter' style='margin-top:35px; margin-right:25px;'>
-                        <input id='btnSaveModelYes' type='button' value='Save' style='float:right; margin-left:20px;'></input>
-                        <input id='btnSaveModelNo' type='button' value='Cancle' style='float:right; margin-left:20px;'></input>
+                        <input id='btnSaveModelNo' type='button' value='Prekliči' style='float:right; margin-left:20px;'></input>
+                        <input id='btnSaveModelYes' type='button' value='Shrani' style='float:right; margin-left:20px;'></input>
                     </div>
                 </form>
             </div>
@@ -528,7 +511,7 @@
         <div id='dialogMACBETH'>
             <div class="dialogMACBETHHeader"> 
                 <span>
-                    Macbeth difference
+                    MACBETH
                 </span>
             </div>
             <div class="dialogMACBETHContent" style='background-color:#EEF0F1;'>
@@ -547,6 +530,7 @@
                         <tr>
                             <td>
                                 <input id='btnDeleteMacbethData' type='image' src='./images/imgClear16.png'></input>
+                                <input id='btnClearSelectedCell' type='button' value='Počisti izbrano celico' style='float:right;'></input>
                             </td>
                         </tr>
                     </table>
@@ -555,7 +539,9 @@
                             Differences
                         </div> -->
                         <div id='MacExpanderBody'> 
-                            <div id='MCSliderHeader' class='CenterDiv' style='margin-bottom:20px;'>
+                            <div id='MCSliderHeader' class='CenterDiv' style='margin-bottom:10px;'>
+                                <span ID='MCMinimalChange' style='font-weight:bold;'></span>
+                                <br />
                                 <span ID='MCFirstOption' style='font-weight:bold'></span>
                                 <span> - </span>
                                 <span ID='MCSecondOption' style='font-weight:bold'></span>
@@ -566,9 +552,9 @@
                     </div>
                 </div>
 
-                <div class='dialogMACBETHFooter' style='margin-top:35px; margin-right:10px;'>
-                    <input id='btnDialogMACBETHCancle' type='button' value='Cancle' style='float:right;'></input>
-                    <input id='btnDialogMACBETHOK' type='button' value='OK' style='float:right; margin-right:7px;'></input>
+                <div class='dialogMACBETHFooter' style='margin-top:30px; margin-right:10px;'>
+                    <input id='btnDialogMACBETHCancle' type='button' value='Prekliči' style='float:right;'></input>
+                    <input id='btnDialogMACBETHOK' type='button' value='Shrani' style='float:right; margin-right:7px;'></input>
                 </div>
             </div>
         </div>
