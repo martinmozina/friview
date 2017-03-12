@@ -24,8 +24,9 @@ var lessValuables = [];
 var expectedValues = [];
 var increaseDecreaseDataGlobal;
 // MR: Tole pol zamenjaj če ne boš več rabil oz naredi v nastavitvah....
- var macbethDifferenceLabels = ["extreme", "v. strong", "strong", "moderate", "weak", "v. weak", "no"];
+ // var macbethDifferenceLabels = ["extreme", "v. strong", "strong", "moderate", "weak", "v. weak", "no"];
 // var macbethDifferenceLabels = ["extreme", "strong", "moderate", "weak", "no"];
+var macbethDifferenceLabels = ["ekstremna", "močna", "zmerna", "šibka", "brez"];
 
 window.addEventListener("beforeunload", function (e) {
     var confirmationMessage = 'Are you sure you want to leave page? '
@@ -37,25 +38,33 @@ window.addEventListener("beforeunload", function (e) {
 
 $(document).ready(function(){
 
+        document.onkeydown = function(event){
+
+            // CTRL + Z
+            if(event.keyCode == 90 && event.ctrlKey){
+                window.currentUMG.UNDO();
+            }
+
+            // CTRL + Y
+            if(event.keyCode == 89 && event.ctrlKey){
+                window.currentUMG.REDO();
+            }
+        }
+
 		window.model = new Model();
         window.model.resetModel();
 
         window.valueTree = new ValueTree();
+        window.valueTree.URManager.setAsCurrentUMG();
         window.valueTree.recalcData(model.getAllNodes());
         
-        window.krozniMenu = new CircularMenu();
-    	
-    	window.gridVariants = new GridVariant('#gridVariants', model.getVariants());
-    	window.gridVariants.setUpGridData();
-    	window.gridVariants.buildGrid();
+        window.gridVariants = new GridVariant('#gridVariants', model.getVariants());
+        window.gridVariants.setUpGridData();
+        window.gridVariants.buildGrid();
 
+        window.krozniMenu = new CircularMenu();
+	    
         $('#dialogMACBETH').DialogMACBETHH({autoOpen: false});
-        $('#dialogCriteriaDetails').DialogCriterionDetails({autoOpen: false});
-        $('#dialogNodeDetails').DialogNodeDetails({autoOpen: false});
-        $('#dialogValFuncPiecewise').DialogPiecewise({autoOpen: false});
-        $('#dialogValFuncLinear').DialogLinear({autoOpen: false});
-        $('#dialogValFuncDiscrete').DialogDiscrete({autoOpen: false});
-        $('#dialogWeight').DialogWeights({autoOpen: false});
         $('#dialogAllWeight').DialogAllWeights({autoOpen: false});
         $('#dialogSaveModel').DialogSaveModel();
 
@@ -89,7 +98,7 @@ $(document).ready(function(){
                                     window.model = new Model();
                                     window.model.resetModel();
 
-                                    var UMModel = new UMG(getWholeDataModel, updateModel, 50);
+                                    window.currentUMG.reset();
 
                                     window.valueTree = new ValueTree();
                                     window.valueTree.recalcData(model.getAllNodes());
@@ -112,6 +121,7 @@ $(document).ready(function(){
                         btnOpen.on('click', function(){
                             model.openModel(gridVariants.rebuildGrid);
                             gridVariants.rebuildGrid();
+                            window.currentUMG.reset();
                         });
                         break;
                     case 3:
@@ -120,7 +130,7 @@ $(document).ready(function(){
                         btnUndo.jqxButton({ height: 16 });
                         btnUndo.jqxTooltip({content: "Razveljavi", animationShowDelay: 1000});
                         btnUndo.on('click', function(){
-                            UMModel.UNDO();
+                            window.currentUMG.UNDO();
                             gridVariants.rebuildGrid();
                         });
                         break;
@@ -130,7 +140,7 @@ $(document).ready(function(){
                         btnRedo.jqxButton({ height: 16 });
                         btnRedo.jqxTooltip({content: "Ponovno uveljavi", animationShowDelay: 1000});
                         btnRedo.on('click', function(){
-                            UMModel.REDO();
+                            window.currentUMG.REDO();
                             gridVariants.rebuildGrid();
                         });
                         break;
@@ -196,16 +206,17 @@ $(document).ready(function(){
 
             switch(tabTitle){
                 case 'Odločitveno drevo' :
-
+                    window.valueTree.URManager.setAsCurrentUMG();
                     break;
 
                 case 'Variante' :
                     gridVariants.rebuildGrid();
-    				
+                    window.gridVariants.URManager.setAsCurrentUMG();
                     break;
 
                 case 'Analiza' :
-                    
+                    window.currentUMG = null;
+
                     // Kadar je model neveljaven ne napreduje na tab analize.
                     if(this.validationMessage != 'OK'){
                         $('#tabsContent').jqxTabs('select', this.goToIndex);
@@ -223,61 +234,40 @@ $(document).ready(function(){
                     break;
             }
         });
-
-        window.gridVariants.setUpGridData();
-        window.gridVariants.buildGrid();	
 });
 
-Number.prototype.myRound = function(places) {
-  return +(Math.round(this + "e+" + places)  + "e-" + places);
-}
+//MR: vnesi v velikost zaslona string ... gre na 0 ... NI OK!!!
+
 
 //////////////////////////////////
 //////      POMOŽNE FUNKCIJE
 //////////////////////////////////
 
-function popUpDialogCriteriaDetails(){
-
-    $('#dialogCriteriaDetails').DialogCriterionDetails('open');
+Number.prototype.myRound = function(places) {
+    return +(Math.round(this + "e+" + places)  + "e-" + places);
 }
+String.prototype.myRound = function(places){
 
-function popUpDialogNodeCriteriaDetails(){
-    if(currentD.type == 'criterion'){
-        $('#dialogCriteriaDetails').DialogCriterionDetails('open', currentD);
-    }
-    else if(currentD.type == 'node' || currentD.type == "root"){
-        $('#dialogNodeDetails').DialogNodeDetails('open', currentD);
-    }
+    return +(Math.round(parseFloat(this) + "e+" + places)  + "e-" + places);
 }
-
-function popUpDialogNodeDetails(){
-
-    $('#dialogNodeDetails').DialogNodeDetails('open');
+Number.prototype.myToFixed = function(places) {
+    return this.toFixed(places);
 }
+String.prototype.myToFixed = function(places){
 
-function popUpDialogValFunc(){
-    if(currentD.valFuncType == 'piecewise'){
-        $('#dialogValFuncPiecewise').DialogPiecewise('open', currentD);
+    if(!$.isNumeric(this)){
+        return "";
     }
-    else if(currentD.valFuncType == 'discrete'){
-        $('#dialogValFuncDiscrete').DialogDiscrete('open', currentD);
-    }
-    else if(currentD.valFuncType == 'linear'){
-        $('#dialogValFuncLinear').DialogLinear('open', currentD);
-    }
-}
 
-function popUpDialogWeights(){
-
-    $('#dialogWeight').DialogWeights('open', currentD);
+    return parseFloat(this).toFixed(places);
 }
 
 function myParseFloat(obj){
 
     var obj = obj.replace(',', '.');
+
     return parseFloat(obj);
 }
-
 
 //////////////////////////////////
 //////      KROŽNI MENU
@@ -296,22 +286,22 @@ function CircularMenu(){
     this.r = 42;
 
     this.btnRemove = $("<div id='menBtnRemove' class='circMenuItem' style='position:absolute; visibility:hidden;"+
-                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/removeIcon32.png)' onClick='UMModel.saveState(); model.deleteCurrentCriterion();krozniMenu.zapriMenu();'></div>") ;
+                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/removeIcon32.png)'></div>");
 
     this.btnAddNode = $("<div id='menBtnAddNode' class='circMenuItem' style='position:absolute; visibility:hidden;"+
-                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/addIcon32.png)' onClick='popUpDialogNodeDetails()'></div>");
+                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/addIcon32.png)'></div>");
 
     this.btnAddCriteria = $("<div id='menBtnAddCriterion' class='circMenuItem' style='position:absolute; visibility:hidden;"+
-                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/addCriterionIcon32.png)' onClick='popUpDialogCriteriaDetails()'></div>");
+                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/addCriterionIcon32.png)'></div>");
 
     this.btnDetails = $("<div id='menBtnDetails' class='circMenuItem' style='position:absolute; visibility:hidden;" + 
-                    "top:" + 0 + "px; left:" + 0 + "px; background: url(images/detailsIcon32.png)' onClick='popUpDialogNodeCriteriaDetails()'></div>");
+                    "top:" + 0 + "px; left:" + 0 + "px; background: url(images/detailsIcon32.png)'></div>");
 
     this.btnWeight = $("<div id='menBtnWeight' class='circMenuItem' style='position:absolute; visibility:hidden;"+
-                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/weighingIcon32.png)' onClick='popUpDialogWeights()'></div>");
+                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/weighingIcon32.png)'></div>");
 
     this.btnValFunc = $("<div id='menBtnValFunc' class='circMenuItem' style='position:absolute; visibility:hidden;"+
-                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/imgValFunc32.png)' onClick='popUpDialogValFunc()'></div>");
+                    " top:" + 0 + "px; left:" + 0 + "px; background: url(images/imgValFunc32.png)'></div>");
 
 
     $(this.btnRemove).jqxTooltip({content: 'Odstrani vozlišče'});
@@ -320,6 +310,45 @@ function CircularMenu(){
     $(this.btnDetails).jqxTooltip({content: 'Lastnosti'});
     $(this.btnWeight).jqxTooltip({content: 'Urejevanje uteži'});
     $(this.btnValFunc).jqxTooltip({content: 'Urejevanje funkcije koristnosti'});
+
+    $(this.btnRemove).on('click', function(){
+        window.valueTree.URManager.saveState();
+        model.deleteCurrentCriterion();
+        krozniMenu.zapriMenu();
+    });
+
+    $(this.btnAddNode).on('click', function(){
+            window.dialogNodeDetails.open();
+    });
+
+    $(this.btnAddCriteria).on('click', function(){
+         window.dialogCriteriaDetails.open();
+    });
+
+    $(this.btnDetails).on('click', function(){
+        if(currentD.type == 'criterion'){
+             window.dialogCriteriaDetails.open(currentD);
+        }
+        else if(currentD.type == 'node' || currentD.type == "root"){
+            window.dialogNodeDetails.open(currentD);
+        }
+    });
+
+    $(this.btnWeight).on('click', function(){
+        window.dialogWeights.open(currentD);
+    });
+
+    $(this.btnValFunc).on('click', function(){
+        if(currentD.valFuncType == 'piecewise'){
+            window.dialogValFuncPiecewise.open(currentD);
+        }
+        else if(currentD.valFuncType == 'discrete'){
+            window.dialogValFuncDiscrete.open(currentD);
+        }
+        else if(currentD.valFuncType == 'linear'){
+            window.dialogValFuncLinear.open(currentD);
+        }
+    });
 
     $('body').append(this.btnRemove);
     $('body').append(this.btnAddNode);
@@ -477,12 +506,22 @@ function CircularMenu(){
         }
         return positions;
     }
+
+    this.popUpCriteriaDetails = function(){
+        if(currentD.type == 'criterion'){
+            window.dialogCriteriaDetails.open(currentD);
+        }
+        else if(currentD.type == 'node' || currentD.type == "root"){
+            _self.popUpDialog('nodeDetialsEdit', currentD);
+        }
+    }
 }
 
 
 //////////////////////////////////
 //////      GRID VARIANT
 //////////////////////////////////
+
 
 function GridVariant(gridSelector){
 
@@ -499,9 +538,9 @@ function GridVariant(gridSelector){
     this.inconsistentCells = {};
 
     this.ri = -1;
-    this.df = 'Procesor'
+    this.df = 'Procesor';
 
-    // METODE ZA (RE)GENERIRANJE GRIDA.
+    // Metode za (re)generiranje grida.
 
     this.setUpGridData = function(){
 
@@ -554,6 +593,10 @@ function GridVariant(gridSelector){
                     datafield: criterion.name,
                     validation: _self._cellValidation,
                     cellclassname: _self._cellClassAppender,
+                    cellvaluechanging: function (row, column, columnType, oldValue, newValue) {
+                        // Če je nova vrednost prazen string vrne staro vrednost.
+                        return newValue.replace(",", ".");
+                    },
                 }
 
                 if(criterion.scaleType == "fixed"){
@@ -592,9 +635,9 @@ function GridVariant(gridSelector){
 
             // Za piecewise in linear tipe valueFunction-ov je podatkovni tip število.
             var dataFieldType = 'string';
-            if(criterion.valueFunction.type == 'linear' || criterion.valueFunction.type == 'piecewise'){
-                dataFieldType = 'number';
-            }
+            // if(criterion.valueFunction.type == 'linear' || criterion.valueFunction.type == 'piecewise'){
+            //     dataFieldType = 'number';
+            // }
 
             datFields.push({
                 name: criterion.name, 
@@ -627,8 +670,8 @@ function GridVariant(gridSelector){
                     return;
                 }
 
-                UMModel.saveState();
-
+                _self.URManager.saveState();
+                
                 window.model.addVariant(rowdata);
                 commit(true);
 
@@ -638,14 +681,14 @@ function GridVariant(gridSelector){
             },
             updaterow: function(rowid, rowdata, commit){
 
-                UMModel.saveState();
+                _self.URManager.saveState();
 
                 window.model.updateVariant(rowdata);
                 commit(true);
             },
             deleterow: function(rowid, commit){
 
-                UMModel.saveState();
+                _self.URManager.saveState();
 
                 var rowdata = $('#gridVariants').jqxGrid('getrowdatabyid', rowid);
                 var vid = rowdata.vid
@@ -702,7 +745,7 @@ function GridVariant(gridSelector){
                         $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
                             contentText: "Ali ste prepričani, da želite odstraniti vse variante?",
                             yesAction: function(){
-                                UMModel.saveState();
+                                _self.URManager.saveState();
                                 window.model.resetVariants();
                                 window.gridVariants.rebuildGrid();
                             }
@@ -733,17 +776,27 @@ function GridVariant(gridSelector){
                 btnRefreshInconsistentCells.jqxTooltip({content: "Osveži tabelo variant.", animationShowDelay: 1000});
 
                 toolbar.css('visibility', 'visible');
-            }
+            },
         });
 
-        // $('#gridVariants').on('cellendedit', function(event){
-        //     // mmmm, saj jqxgrid ne ponuja druge možnosti. (ni mišljen, da bi v njem barvali celice...)
-        //     // Če pa nebi bilo timeouta bi prihajalo do exceptionov (ker se grid pobriše medtem ko je v svoji cellendedit metodi in to ni OK.)
+        $('#gridVariants').on('cellbeginedit', function(event){
+            // console.log(event);
+        });
+        $('#gridVariants').on('cellendedit', function(event){
+            // console.log(event);
 
-        //     setTimeout(function(){
-        //         _self.rebuildGrid();
-        //     }, 200)
-        // });
+            // var args = event.args;
+            // // column data field.
+            // var dataField = event.args.datafield;
+            // // row's data.
+
+            // var criterion = model.getCriteria(dataField);
+            // var rowData = args.row;
+
+            // if(typeof(criterion.valueFunction) != 'undefined' && (criterion.valueFunction.type == "linear" || criterion.valueFunction.type == "piecewise")) {
+            //     $("#gridVariants").jqxGrid('setcellvalue', rowData.uid, dataField, "124");
+            // }
+        });
 
         $('#gridVariants').on('cellclick', function(event){
 
@@ -911,7 +964,7 @@ function GridVariant(gridSelector){
         }
     }
 
-    // METODE VALIDACIJE.
+    // Metode validacije.
 
     this._cellClassAppender = function(rowIndx, colName, cellValue, rowData){
         // Metoda obarva nekonsistentne celice.
@@ -947,15 +1000,19 @@ function GridVariant(gridSelector){
 
         var criterion = model.getCriteria(cell.column);
 
-        // Validacija lastnosti z fixed skalo.
-        if(criterion.scaleType == "fixed"){
+        //Validacija lastnosti tipa funkcije koristnosti.
+        if(criterion.valueFunction.type == 'piecewise' || criterion.valueFunction.type == 'linear'){
+            value = value.replace(",", ".");
             if(!$.isNumeric(value)){
                 return {
                     result: false,
                     message: "Vrednost za tip funkcije: '" + criterion.valueFunction.type + "' mora biti numerična!"
                 }
             }
+        }
 
+        // Validacija lastnosti z fixed skalo.
+        if(criterion.scaleType == "fixed"){
             value = parseFloat(value);
             var min = parseFloat(criterion.minValue);
             var max = parseFloat(criterion.maxValue);
@@ -1020,7 +1077,7 @@ function GridVariant(gridSelector){
         return result;
     }
 
-    // METODE - EXCEL
+    // Metode - EXCEL
 
     this._recreateFileChooser = function(){
         // Metoda vrne file chooser. Če ne obstaja ga naredi.
@@ -1164,8 +1221,8 @@ function GridVariant(gridSelector){
 
             fileReader.onload = function(e){
 
-                UMModel.saveState();
-                UMModel.pauseSaving = true;
+                _self.URManager.saveState();
+                _self.URManager.pauseSaving = true;                
 
                 var data = e.target.result;
 
@@ -1181,7 +1238,7 @@ function GridVariant(gridSelector){
                 // Doda variante v model.
                 _self._addAllExcelVariantsToModel(variants);
                 
-                UMModel.pauseSaving = false;
+                _self.URManager.pauseSaving = false;
 
                 // Na novo zgradi grid ter obarva nekonsistentne celice.
                 _self.rebuildGrid();
@@ -1193,6 +1250,26 @@ function GridVariant(gridSelector){
         
         fileChooser.click();
     }
+
+    // Metode UNDO/REDO
+
+    this.getStateOfVariants = function(){
+
+        var variantDataString = model.getVariantsString();
+
+        return variantDataString;
+    }
+
+    this.setStateOfVariants = function(state){
+
+        var objState = JSON.parse(state);
+
+        model.updateVariants(objState);
+  
+        this.rebuildGrid();
+    }
+
+    this.URManager = new UMG(this.getStateOfVariants, this.setStateOfVariants, 100, true, this);
 }
 
 
@@ -1218,6 +1295,7 @@ function ValueTree(){
     this.svg;
     this._criteria;
     this.idCriteria = 0;
+
 
     this.recalcData = function(criteria){
         this._criteria = criteria;
@@ -1369,949 +1447,901 @@ function ValueTree(){
             d.y0 = d.y;
         });  
     }
+
+    // Za undo/redo
+
+    this.getStateOfTree = function(){
+
+        var treeDataString = model.getCriteriaString();
+
+        return treeDataString;
+    }
+
+    this.setStateOfTree = function(state){
+
+        var objState = JSON.parse(state);
+
+        model.updateCriteria(objState);
+
+        var durationOld = window.valueTree.translationDuration;
+        window.valueTree.translationDuration = 0;
+        window.valueTree.recalcData(model._criteria);
+        window.valueTree.translationDuration = durationOld;
+    }
+
+    this.URManager = new UMG(this.getStateOfTree, this.setStateOfTree, 100, true, this);
 }
 
 
-//////////////////////////////////
-//////    DIALOG KREIRANJA/UREJANJA KRITERIJA
-//////////////////////////////////
+$(document).ready(function(){
 
-(function( $ ){
+    function FVDialogWindow(selector, windowOptions){
 
-    $.widget('myWidget.DialogCriterionDetails', {
+        this.selector = selector;
 
-        options: {
+        var defaultWindowOptions = {
             width: 420,
-            height: 480
-        },
+            height: 480,
+            resizable: false,
+            isModal: true,
+            position: "center",
+            autoOpen: false,
+            draggable: true
+        };
 
-        criterion: {},
-        dialogID: "",
-        openMode: "",
-        oldCriterionName: "",
+        this.windowOptions = $.extend(defaultWindowOptions, windowOptions);
 
-        _create: function(){
-            var _self = this;
+        $(this.selector).jqxWindow(this.windowOptions);
 
-            _self.dialogID =  "#" + $(this.element).prop('id');
+        this.initDialogContent();
+    }
 
-            $(_self.dialogID).jqxWindow({
-                height: _self.options.height, 
-                width: _self.options.width,
-                resizable: false,
-                isModal: true,
-                position: "center",
-                autoOpen: false,
-                draggable: true,
-                initContent: function(){
-                    // Sprva pridobi oz. kreira vse gradnike dialoga.
-                    var tfName = $("#tfName").jqxInput({height: 19, width: 250});
-                    $("#tfName").on('change', function(event){
+    FVDialogWindow.prototype.centralizeDialog = function(){
+        // Premakne dialog na sredino.
+        var _self = this;
 
-                        // Trima vsebino:
-                        var trimmedVal = $("#tfName").val().trim()
+        var x = ($(document).width() / 2) - (_self.windowOptions.width / 2);
+        var y = (($(window).height()/2) - (_self.windowOptions.height / 2) + $(document).scrollTop());
 
-                        $("#tfName").val(trimmedVal);
-                    });
-                    var selScaleType = $("#selScaleType");
-                    var selselValFuncType = $('#selValFuncType');
-                    var tfMin = $("#tfMin").jqxInput({height: 19, width: 65});
-                    var tfMax = $("#tfMax").jqxInput({height: 19, width: 65});
-                    var cbInverseScale =  $("#cbInverse");
-                    var taDescription = $("#taDescription");
+        if(y < 0){
+            y = 10;
+        } 
 
-                    var btnUpdate = $('#btnSaveCritDet').jqxButton({width: 55});
-                    var btnCancel = $('#btnCloseCritDet').jqxButton({width: 55});
-
-                    var selectValidatorNotNull = function(input, commit){
-                        return input.val() != null;
-                    } 
-                    var isMinMaxValidator = function(input, commit){
-                        
-                        var val = input.val();
-                        val = val.replace(',', '.');
-
-                        if(!$.isNumeric(val)){
-                            return val.toLocaleLowerCase() == 'min' || val.toLocaleLowerCase() == 'max';
-                        }
-                        return $.isNumeric(val);
-                    }
-
-                    $('#formCriteriaDetails').jqxValidator({
-                        rules: [
-                            { input: '#tfName', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#selScaleType', message: 'Polje je obvezno!', action: 'keyup, blur', rule: selectValidatorNotNull},
-                            { input: '#selValFuncType', message: 'Polje je obvezno!', action: 'keyup, blur', rule: selectValidatorNotNull },
-                            { input: '#tfMin', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#tfMin', message: 'Polje mora vsebovati število!', action: 'keyup, blur', rule: isMinMaxValidator },
-                            { input: '#tfMax', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#tfMax', message: 'Polje mora vsebovati število!', action: 'keyup, blur', rule: isMinMaxValidator },
-                            { input: '#tfName', message: 'Ime že obstaja!', action: 'keyup, blur', rule: function(input, commit){
-                                var existingCriterias = model.getAllCriteraAndNodeToList();
-
-                                var isValid = true;
-                                existingCriterias.forEach(function(element, index){
-
-                                    if(element.name == $("#tfName").val()){
-                                        if(_self.openMode == "M" && element.cid == _self.criterion.cid){
-                                            return false;
-                                        }
-                                        isValid = false;
-                                    }
-                                });
-
-                                return isValid;
-                            }}
-                        ]
-                    });
-
-                    btnUpdate.on('click', function(){
-
-                        $('#formCriteriaDetails').jqxValidator('validate');
-                    });
-                    
-                    $('#formCriteriaDetails').on('validationSuccess', function(event){
-                        
-                        var newName = $("#tfName").val().trim();
-
-                        // Lastnosti variant se preimenuje samo če gre za Modification mode ter če se je ime spremenilo. (in če tako želi uporabnik)
-                        // Dialog se ravno tako ne odpre če variante nimajo te lastnosti ali če ni nobene variante.
-                        var variants = model.getVariants();
-                        var variantKeys = Object.keys(variants);
-                        if(variantKeys.length == 0 || !variants[variantKeys[0]].hasOwnProperty(_self.oldCriterionName)
-                            || _self.openMode == "C" || ( _self.oldCriterionName == newName )){
-
-                            _self._saveCriterionToModel();
-                            _self._close();
-                            return;
-                        }
-
-                        $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                            height: 180,
-                            headerText: 'Opozorilo!',
-                            contentText: "Želite preimenovati tudi lastnosti variant?",
-                            yesAction: function(){
-                                // Funkcija prvo preimenuje lastnosti variant potem shrani nov posodobljen kriterij.
-
-                                model.renamePropertyOfVariants(_self.oldCriterionName, newName);
-
-                                _self._saveCriterionToModel();
-                                _self._close()
-                            },
-                            noAction: function(){
-                                // Funkcija shrani samo kriterij.
-
-
-
-                               // model.removePropertyOfVariants(_self.oldCriterionName);
-
-                                _self._saveCriterionToModel();
-                                _self._close();
-                            }
-                        });
-                    });
-
-                    btnCancel.on('click', function(){
-
-                        _self._resetDialog();
-                        $(_self.dialogID).jqxWindow('close');
-                    });
-
-                    selScaleType.on('change', function(event){
-
-                        _self.refreshValFunctionTypeSelect();
-                        // Ob spremembi je izbrana prva izbira valfunc...
-                        $('#selValFuncType option:first').attr('selected', 'selected');
-
-                        _self._refreshControls();
-                    });
-
-                    selselValFuncType.on('change', function(event){
-                        var selVal = selselValFuncType.val();
-                        _self._refreshControls();
-                        selselValFuncType.val(selVal);
-                    });                    
-                }
-            });
-
-            // Odprtje dialoga ob kreaciji.
-            if(this.options.autoOpen){
-                this.open();
+        $(_self.selector).jqxWindow({        
+            position: {
+                x: x,
+                y: y
             }
-        },
+        });
+    }
 
-        open: function(criterion){
-            // Metoda odpre dialog za kreiranje/spreminjanje kriterija.
-            // Če ima podan kriterij je način odprtja Modification (M), sicer Creation (C).
-            var _self = this;
+    FVDialogWindow.prototype.close = function(){
+        var _self = this;
 
-            if(typeof(criterion) == 'undefined'){
-                this.openMode = 'C';
-                //Kadar je v Creation načinu prvo naredi prazen kriterij.
-                _self.criterion = model.createNewEmptyModelCriterion();
-            }
-            else{
-                this.openMode = "M";
-                this.criterion = criterion;
-                this.oldCriterionName = criterion.name;
-            }
+        _self.resetDialogContent();
 
-            this._resetDialog();
+        $(_self.selector).jqxWindow('close');
+    }
 
-            if(this.openMode == "M"){
-                this._refreshDialog();
-            }
+    FVDialogWindow.prototype.initDialogContent = function(){
+        throw "Funkcijo je 'initDialogContent' potrebno implementirati v 'razredu', ki deduje od FVDialogWindow!";
+    }
 
-            $(_self.dialogID).jqxWindow('open');
-        },
+    FVDialogWindow.prototype.resetDialogContent = function(){
+        throw "Funkcijo 'resetDialogContent' je potrebno implementirati v 'razredu', ki deduje od FVDialogWindow!";
+    }
 
-        _close: function(){
-            var _self = this;
 
-            _self._resetDialog();
-            $(_self.dialogID).jqxWindow('close');
-        },
+    //////////////////////////////////
+    //////    DIALOG KREIRANJA/UREJANJA KRITERIJA
+    //////////////////////////////////
 
-        _resetDialog: function(){
-            var _self = this;
+    function FVDialogCriteriaDetails(selector){
+        
+        var windowOptions = {
+            height: 480, 
+            width: 420
+        };
 
-            $(_self.dialogID).jqxWindow({        
-                position: {
-                    x: ($(document).width() / 2) - (_self.options.width / 2),
-                    y: (($(window).height()/2) - (_self.options.height / 2) + $(document).scrollTop())
-                }
-            });
+        FVDialogWindow.call(this, selector, windowOptions);
 
-            this._resetControls();
-        },
+        this.criterion = {};
+        this.openMode = "";
+    }
+    FVDialogCriteriaDetails.prototype = Object.create(FVDialogWindow.prototype);
+    FVDialogCriteriaDetails.prototype.constructor = FVDialogCriteriaDetails;
 
-        _refreshDialog: function(){
+    FVDialogCriteriaDetails.prototype.initDialogContent = function(){
+        var _self = this;
+
+        // Sprva pridobi oz. kreira vse gradnike dialoga.
+        var tfName = $("#tfName").jqxInput({height: 19, width: 250});
+        $("#tfName").on('change', function(event){
+
+            // Trima vsebino:
+            var trimmedVal = $("#tfName").val().trim()
+
+            $("#tfName").val(trimmedVal);
+        });
+        var selScaleType = $("#selScaleType");
+        var selselValFuncType = $('#selValFuncType');
+        var tfMin = $("#tfMin").jqxInput({height: 19, width: 65});
+        var tfMax = $("#tfMax").jqxInput({height: 19, width: 65});
+        var cbInverseScale =  $("#cbInverse");
+        var taDescription = $("#taDescription");
+
+        var btnUpdate = $('#btnSaveCritDet').jqxButton({width: 55});
+        var btnCancel = $('#btnCloseCritDet').jqxButton({width: 55});
+
+        var selectValidatorNotNull = function(input, commit){
+            return input.val() != null;
+        } 
+        var isMinMaxValidator = function(input, commit){
             
-            if(this.openMode == "C"){
-                this._resetControls();
+            var val = input.val();
+            val = val.replace(',', '.');
+
+            if(!$.isNumeric(val)){
+                return val.toLocaleLowerCase() == 'min' || val.toLocaleLowerCase() == 'max';
             }
-            else if(this.openMode == "M"){
-                $("#tfName").val(this.criterion.name);
-                $("#selScaleType").val(this.criterion.scaleType);
-                this.refreshValFunctionTypeSelect();
-                $('#selValFuncType').val(this.criterion.valueFunction.type);
-                $("#tfMin").val(this.criterion.minValue);
-                $("#tfMax").val(this.criterion.maxValue);
-                $("#cbInverse").prop('checked', this.criterion.inverseScale);
-                $("#taDescription").val(this.criterion.description);
+            return $.isNumeric(val);
+        }
+
+        $('#formCriteriaDetails').jqxValidator({
+            rules: [
+                { input: '#tfName', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                { input: '#selScaleType', message: 'Polje je obvezno!', action: 'keyup, blur', rule: selectValidatorNotNull},
+                { input: '#selValFuncType', message: 'Polje je obvezno!', action: 'keyup, blur', rule: selectValidatorNotNull },
+                { input: '#tfMin', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                { input: '#tfMin', message: 'Polje mora vsebovati število!', action: 'keyup, blur', rule: isMinMaxValidator },
+                { input: '#tfMax', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                { input: '#tfMax', message: 'Polje mora vsebovati število!', action: 'keyup, blur', rule: isMinMaxValidator },
+                { input: '#tfName', message: 'Ime že obstaja!', action: 'keyup, blur', rule: function(input, commit){
+                    var existingCriterias = model.getAllCriteraAndNodeToList();
+
+                    var isValid = true;
+                    existingCriterias.forEach(function(element, index){
+
+                        if(element.name == $("#tfName").val()){
+                            if(_self.openMode == "M" && element.cid == _self.criterion.cid){
+                                return false;
+                            }
+                            isValid = false;
+                        }
+                    });
+
+                    return isValid;
+                }}
+            ]
+        });
+
+        btnUpdate.on('click', function(){
+
+            $('#formCriteriaDetails').jqxValidator('validate');
+        });
+        
+        $('#formCriteriaDetails').on('validationSuccess', function(event){
+            
+            var newName = $("#tfName").val().trim();
+
+            // Lastnosti variant se preimenuje samo če gre za Modification mode ter če se je ime spremenilo. (in če tako želi uporabnik)
+            // Dialog se ravno tako ne odpre če variante nimajo te lastnosti ali če ni nobene variante.
+            var variants = model.getVariants();
+            var variantKeys = Object.keys(variants);
+            if(variantKeys.length == 0 || !variants[variantKeys[0]].hasOwnProperty(_self.oldCriterionName)
+                || _self.openMode == "C" || ( _self.oldCriterionName == newName )){
+
+                _self.saveChanges();
+                _self.close();
+                return;
             }
 
-            this._refreshControls();
-        },
+            $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
+                height: 180,
+                headerText: 'Opozorilo!',
+                contentText: "Želite preimenovati tudi lastnosti variant?",
+                yesAction: function(){
+                    // Funkcija prvo preimenuje lastnosti variant potem shrani nov posodobljen kriterij.
 
-        _resetControls: function(){
+                    model.renamePropertyOfVariants(_self.oldCriterionName, newName);
 
-            $("#tfName").val('');
-            $("#selScaleType").val('');
-            $('#selValFuncType').val('');
-            $('#selValFuncType').html('');
-            $("#tfMin").val('');
-            $("#tfMax").val('');
-            $("#cbInverse").prop('checked', false);
-            $("#taDescription").val('');
-        },
+                    _self.saveChanges();
+                    _self.close()
+                },
+                noAction: function(){
+                    // Funkcija shrani samo kriterij.
 
-        _refreshControls: function(){
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno vnešene v kontrolah.
-           
-            var selValFunctionType = $('#selValFuncType').val();
+                   // model.removePropertyOfVariants(_self.oldCriterionName);
 
-            if($("#selScaleType").val() == 'relative'){
-                $("#tfMin").jqxInput({ disabled: true });
-                $("#tfMin").val('Min');
-                $("#tfMax").jqxInput({ disabled: true });
-                $("#tfMax").val('Max');
-                $('#cbInverse').prop('disabled', false);
-            }
-            else if($("#selScaleType").val() == 'fixed'){
-                
-                if(selValFunctionType == 'linear' || selValFunctionType == 'piecewise'){
-                    $("#tfMin").jqxInput({ disabled: false });
-                    $("#tfMax").jqxInput({ disabled: false });
-                    $('#cbInverse').prop('disabled', false);
-
-                    if($("#tfMin").val() == '' || $("#tfMin").val() == 'Min'){
-                        $("#tfMin").val('0');
-                    }
-                    if($("#tfMax").val() == '' || $("#tfMax").val() == 'Max'){
-                        $("#tfMax").val('100');
-                    }
+                    _self.saveChanges();
+                    _self.close();
                 }
-                else if(selValFunctionType == 'discrete'){
-                    $("#tfMin").jqxInput({ disabled: true });
-                    $("#tfMax").jqxInput({ disabled: true });
-                    $('#cbInverse').prop('disabled', true);
+            });
+        });
 
+        selScaleType.on('change', function(event){
+
+            // Ob spremembi je izbrana prva izbira valfunc...  
+            _self.refreshValueFunctionDropDown();
+            $('#selValFuncType option:first').attr('selected', 'selected');
+
+            _self.refreshDialogContent();
+        });
+
+        selselValFuncType.on('change', function(event){
+            var selVal = selselValFuncType.val();
+            _self.refreshDialogContent();
+            selselValFuncType.val(selVal);
+        });
+
+        btnCancel.on('click', function(){
+            _self.close();
+        });
+    }
+
+    FVDialogCriteriaDetails.prototype.resetDialogContent = function(){
+
+        $("#tfName").val('');
+        $("#selScaleType").val('');
+        $('#selValFuncType').val('');
+        $('#selValFuncType').html('');
+        $("#tfMin").val('');
+        $("#tfMax").val('');
+        $("#cbInverse").prop('checked', false);
+        $("#taDescription").val('');
+    }
+
+    FVDialogCriteriaDetails.prototype.setDialogContent = function(criterion){
+        // Funkcija nastavi vrednosti kontrol na vrednosti podanega kriterija.
+        var _self = this;
+
+        if(typeof(criterion) === 'undefined' || criterion == null){
+            return;
+        }
+
+        _self.refreshValueFunctionDropDown(criterion.scaleType);
+
+        $("#tfName").val(criterion.name);
+        $("#selScaleType").val(criterion.scaleType);
+        $('#selValFuncType option:first').attr('selected', 'selected');
+        $('#selValFuncType').val(criterion.valueFunction.type);
+        $("#tfMin").val(criterion.minValue);
+        $("#tfMax").val(criterion.maxValue);
+        $("#cbInverse").prop('checked', criterion.inverseScale);
+        $("#taDescription").val(criterion.description);
+
+        _self.refreshDialogContent();
+    }
+
+    FVDialogCriteriaDetails.prototype.open = function(criterion){
+        // Metoda odpre dialog za kreiranje/spreminjanje kriterija.
+        // Če ima podan kriterij je način odprtja Modification (M), sicer Creation (C).
+        var _self = this;
+
+        _self.centralizeDialog();
+
+        if(typeof(criterion) == 'undefined'){
+            _self.openMode = 'C';
+            //Kadar je v Creation načinu prvo naredi prazen kriterij.
+            _self.criterion = model.createNewEmptyModelCriterion();
+        }
+        else{
+            _self.openMode = "M";
+            _self.criterion = criterion;
+            _self.oldCriterionName = criterion.name;
+        }
+
+        _self.resetDialogContent();
+
+        if(_self.openMode == "M"){
+            _self.setDialogContent(criterion);
+        }
+
+        $(_self.selector).jqxWindow('open');
+    }
+
+    FVDialogCriteriaDetails.prototype.refreshDialogContent = function(){
+        // Osveži gradnike (disable/enable, polnjenje dropdownow....)
+        var _self = this;
+
+        var scaleType = $("#selScaleType").val();
+        var selValFunctionType = $('#selValFuncType').val();
+
+        _self.refreshValueFunctionDropDown(scaleType);
+        $('#selValFuncType').val(selValFunctionType)
+
+        if(scaleType == 'relative'){
+            $("#tfMin").jqxInput({ disabled: true });
+            $("#tfMin").val('Min');
+            $("#tfMax").jqxInput({ disabled: true });
+            $("#tfMax").val('Max');
+            $('#cbInverse').prop('disabled', false);
+        }
+        else if(scaleType == 'fixed'){
+            
+            if(selValFunctionType == 'linear' || selValFunctionType == 'piecewise' || selValFunctionType == null){
+                $("#tfMin").jqxInput({ disabled: false });
+                $("#tfMax").jqxInput({ disabled: false });
+                $('#cbInverse').prop('disabled', false);
+
+                if($("#tfMin").val() == '' || $("#tfMin").val() == 'Min'){
                     $("#tfMin").val('0');
+                }
+                if($("#tfMax").val() == '' || $("#tfMax").val() == 'Max'){
                     $("#tfMax").val('100');
                 }
             }
+            else if(selValFunctionType == 'discrete'){
+                $("#tfMin").jqxInput({ disabled: true });
+                $("#tfMax").jqxInput({ disabled: true });
+                $('#cbInverse').prop('disabled', true);
 
-            if(selValFunctionType == 'piecewise' || selValFunctionType == 'discrete'){
-                $('#cbInverse').attr('disabled', true)
-                $('#cbInverse').prop('checked', false);
+                $("#tfMin").val('0');
+                $("#tfMax").val('100');
+            }
+        }
+
+        if(selValFunctionType == 'piecewise' || selValFunctionType == 'discrete'){
+            $('#cbInverse').attr('disabled', true)
+            $('#cbInverse').prop('checked', false);
+        }
+        else{
+            $('#cbInverse').attr('disabled', false)
+        }
+    }
+
+    FVDialogCriteriaDetails.prototype.refreshValueFunctionDropDown = function(scaleType){
+        // Funkcija nastavi vrednosti drop downu funkcije koristnosti glede na podano vrednos tipa skale.
+
+        if(scaleType == 'relative' || typeof(scaleType) === 'undefined'){
+            $('#selValFuncType').html('<option value="linear">Linear</option><option value="piecewise">Piecewise</option>');
+        }
+        else if(scaleType == 'fixed'){
+            $('#selValFuncType').html('<option value="linear">Linear</option><option value="piecewise">Piecewise</option><option value="discrete">Discrete</option>');
+        }
+    }
+
+    FVDialogCriteriaDetails.prototype.saveChanges = function(){
+        // Metoda shrani trenutno urejen kriterij v model.
+
+        var _self = this;
+
+        var valueFunctionChanged = false;
+
+        if(_self.openMode == "M"){
+            if(_self.criterion.valFuncType != $('#selValFuncType').val()){
+                valueFunctionChanged = true;
+            }
+        }
+
+        // Kreiranje novega kriterija
+        var criterion = _self.criterion;
+        criterion["type"] = 'criterion';
+        criterion.name = $("#tfName").val();
+        criterion.scaleType = $("#selScaleType").val();
+        criterion.valFuncType = $('#selValFuncType').val();
+        criterion.minValue = myParseFloat($("#tfMin").val());
+        criterion.maxValue = myParseFloat($("#tfMax").val());
+        criterion.inverseScale = $("#cbInverse").prop('checked');
+        criterion.description = $("#taDescription").val();
+
+        // Kreiranje/Modificiranje valueFunciton-a kriterija. - Če se spremeni tip val. func. naredi nov val. function objekt.
+        if(_self.openMode == 'C' || (_self.openMode == 'M' && valueFunctionChanged) ){
+            if(criterion.valFuncType == 'linear'){
+                criterion.valueFunction = model.createEmptyLinearValueFunction();
+            }
+            else if(criterion.valFuncType == 'piecewise'){
+                criterion.valueFunction = model.createEmptyPiecewiseValueFunction();
+            }
+            else if(criterion.valFuncType == 'discrete'){
+                criterion.valueFunction = model.createEmptyDiscreteValueFunction();
+            }
+        }
+
+
+        if(_self.openMode == "C"){
+            window.valueTree.URManager.saveState();
+            model.addNode(currentD, criterion);
+        }
+        else if(_self.openMode == "M"){
+            model.updateCriterion(currentD.name, criterion);
+
+            // Ob spreminjanju kriterija se animacija drevesa ne sme zgoditi.
+            var oldDur = window.valueTree.translationDuration;
+            window.valueTree.translationDuration = 0;
+            window.valueTree.recalcData(model.getAllNodes());
+            window.valueTree.translationDuration = oldDur;
+        }
+    }
+
+
+    //////////////////////////////////
+    //////    DIALOG KREIRANJA/UREJANJA VOZLIŠČ
+    //////////////////////////////////
+
+    function FVDialogNodeDetails(selector){
+        
+        var windowOptions = {
+            height: 250, 
+            width: 420
+        };
+
+        FVDialogWindow.call(this, selector, windowOptions);
+
+        this.criterion = {};
+        this.openMode = "";
+    }
+    FVDialogNodeDetails.prototype = Object.create(FVDialogWindow.prototype);
+    FVDialogNodeDetails.prototype.constructor = FVDialogNodeDetails;
+
+    FVDialogNodeDetails.prototype.initDialogContent = function(){
+        var _self = this;
+
+        var tfName = $("#tfNameNode").jqxInput({height: 19, width: 250});
+        $("#tfNameNode").on('change', function(event){
+
+            // Trima vsebino:
+            var trimmedVal = $("#tfNameNode").val().trim()
+
+            $("#tfNameNode").val(trimmedVal);
+        });
+
+        var taDescription = $("#taDescriptionNode");
+
+        var btnSave = $('#btnSaveNodeCreate').jqxButton({width: 55});
+        btnSave.on('click', function(){
+            $('#formNodeDetails').jqxValidator('validate');
+        });
+
+        var btnClose = $('#btnCloseNodeCreate').jqxButton({width: 55});
+        btnClose.on('click', function(){
+            _self.close();
+        });
+
+        $('#formNodeDetails').jqxValidator({
+            rules: [
+                { input: '#tfNameNode', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
+                { input: '#tfNameNode', message: 'Ime že obstaja!', action: 'keyup, blur', rule: function(input, commit){
+                    
+                    var existingCriterias = model.getAllCriteraAndNodeToList();
+
+                    var isValid = true;
+                    existingCriterias.forEach(function(element, index){
+                        
+                        if(element.name == $("#tfNameNode").val()){
+                            if(_self.openMode == "M" && element.cid == _self.criterion.cid){
+                                return false;
+                            }
+                            isValid = false;
+                        }
+                    });
+
+                    return isValid;
+                }}
+            ]
+        });
+        $('#formNodeDetails').on('validationSuccess', function(){
+
+            var nodeDet;
+            // Če gre za Root vozlišče je drugačen objekt...
+            if(_self.openMode == "M" && _self.criterion.type == 'root'){
+                nodeDet = model.createNewEmptyRoot();
             }
             else{
-                $('#cbInverse').attr('disabled', false)
-            }
-        },
-
-        _saveCriterionToModel: function(){
-            // Metoda shrani trenutno urejen kriterij v model.
-            var _self = this;
-
-            var valueFunctionChanged = false;
-
-            if(_self.openMode == "M"){
-                if(_self.criterion.valFuncType != $('#selValFuncType').val()){
-                    valueFunctionChanged = true;
-                }
+                nodeDet = model.createNewEmptyModelNode();
             }
 
-            // Kreiranje novega kriterija
-            var criterion = _self.criterion;
-            criterion.type = 'criterion';
-            criterion.name = $("#tfName").val();
-            criterion.scaleType = $("#selScaleType").val();
-            criterion.valFuncType = $('#selValFuncType').val();
-            criterion.minValue = myParseFloat($("#tfMin").val());
-            criterion.maxValue = myParseFloat($("#tfMax").val());
-            criterion.inverseScale = $("#cbInverse").prop('checked');
-            criterion.description = $("#taDescription").val();
+            nodeDet.name = tfName.val();
+            nodeDet.description = taDescription.val();
 
-            // Kreiranje/Modificiranje valueFunciton-a kriterija. - Če se spremeni tip val. func. naredi nov val. function objekt.
-            if(_self.openMode == 'C' || (_self.openMode == 'M' && valueFunctionChanged) ){
-                if(criterion.valFuncType == 'linear'){
-                    criterion.valueFunction = model.createEmptyLinearValueFunction();
-                }
-                else if(criterion.valFuncType == 'piecewise'){
-                    criterion.valueFunction = model.createEmptyPiecewiseValueFunction();
-                }
-                else if(criterion.valFuncType == 'discrete'){
-                    criterion.valueFunction = model.createEmptyDiscreteValueFunction();
-                }
-            }
-
-            UMModel.saveState();
+            var contains = model.containsNodeName(nodeDet.name);
+            
 
             if(_self.openMode == "C"){
-                model.addNode(currentD, criterion);
+
+                window.valueTree.URManager.saveState();
+                model.addNode(currentD, nodeDet);
             }
             else if(_self.openMode == "M"){
-                model.updateCriterion(currentD.name, criterion);
+                model.updateNodeProperties(currentD.name, nodeDet);
 
-                // Ob spreminjanju kriterija se animacija drevesa ne sme zgoditi.
                 var oldDur = window.valueTree.translationDuration;
                 window.valueTree.translationDuration = 0;
                 window.valueTree.recalcData(model.getAllNodes());
                 window.valueTree.translationDuration = oldDur;
             }
-        },
 
-        refreshValFunctionTypeSelect: function(){
-            if($("#selScaleType").val() == 'relative'){
-                $('#selValFuncType').html('<option value="linear">Linear</option><option value="piecewise">Piecewise</option>');
-            }
-            else if($("#selScaleType").val() == 'fixed'){
-                $('#selValFuncType').html('<option value="linear">Linear</option><option value="piecewise">Piecewise</option><option value="discrete">Discrete</option>');
-            }
+            _self.close();
+        });
+    }
+
+    FVDialogNodeDetails.prototype.resetDialogContent = function(){
+        var _self = this;
+
+        $("#tfNameNode").val('');
+        $("#taDescriptionNode").val('');
+    }
+
+    FVDialogNodeDetails.prototype.setDialogContent = function(criterion){
+        
+        if(typeof(criterion) == 'undefined'){
+            return;
         }
-    });
-})(jQuery);
 
+        $("#tfNameNode").val(criterion.name);
+        $("#taDescriptionNode").val(criterion.description);
+    }
 
-//////////////////////////////////
-//////    DIALOG KREIRANJA/UREJANJA VOZLIŠČ
-//////////////////////////////////
+    FVDialogNodeDetails.prototype.open = function(criterion){
+        // Metoda odpre dialog za kreiranje/spreminjanje vozlišča.
+        // Če ima podano vozlišče je način odprtja Modification (M), sicer Creation (C).
+        var _self = this;
 
-(function( $ ){
+        _self.centralizeDialog();
 
-    $.widget('myWidget.DialogNodeDetails', {
-
-        options: {
-            width: 420,
-            height: 250
-        },
-
-        node: {},
-        dialogID: "",
-        openMode: "",
-
-        _create: function(){
-            var _self = this;
-
-            _self.dialogID =  "#" + $(this.element).prop('id');
-
-            $(_self.dialogID).jqxWindow({
-                height: _self.options.height, 
-                width: _self.options.width,
-                resizable: false,
-                isModal: true,
-                autoOpen: false,
-                draggable: true,
-                initContent: function(){
-
-                    var tfName = $("#tfNameNode").jqxInput({height: 19, width: 250});
-                    $("#tfNameNode").on('change', function(event){
-
-                        // Trima vsebino:
-                        var trimmedVal = $("#tfNameNode").val().trim()
-
-                        $("#tfNameNode").val(trimmedVal);
-                    });
-                    var taDescription = $("#taDescriptionNode");
-
-                    var btnSave = $('#btnSaveNodeCreate').jqxButton({width: 55});
-                    var btnClose = $('#btnCloseNodeCreate').jqxButton({width: 55});
-
-                    btnSave.on('click', function(){
-                        $('#formNodeDetails').jqxValidator('validate');
-                       
-                    });
-                    btnClose.on('click', function(){
-                        _self._resetDialog();
-                        $(_self.dialogID).jqxWindow('close');
-                    });
-
-                    $('#formNodeDetails').jqxValidator({
-                        rules: [
-                            { input: '#tfNameNode', message: 'Polje je obvezno!', action: 'keyup, blur', rule: 'required' },
-                            { input: '#tfNameNode', message: 'Ime že obstaja!', action: 'keyup, blur', rule: function(input, commit){
-                                
-                                var existingCriterias = model.getAllCriteraAndNodeToList();
-
-                                var isValid = true;
-                                existingCriterias.forEach(function(element, index){
-                                    
-                                    if(element.name == $("#tfNameNode").val()){
-                                        if(_self.openMode == "M" && element.cid == _self.node.cid){
-                                            return false;
-                                        }
-                                        isValid = false;
-                                    }
-                                });
-
-                                return isValid;
-                            }}
-                        ]
-                    });
-                    $('#formNodeDetails').on('validationSuccess', function(){
-
-                        var nodeDet;
-                        // Če gre za Root vozlišče je drugačen objekt...
-                        if(_self.openMode == "M" && _self.node.type == 'root'){
-                            nodeDet = model.createNewEmptyRoot();
-                        }
-                        else{
-                            nodeDet = model.createNewEmptyModelNode();
-                        }
-
-                        nodeDet.name = tfName.val();
-                        nodeDet.description = taDescription.val();
-
-                        var contains = model.containsNodeName(nodeDet.name);
-                        
-                        UMModel.saveState();
-
-                        if(_self.openMode == "C"){
-                            model.addNode(currentD, nodeDet);
-                        }
-                        else if(_self.openMode == "M"){
-                            model.updateNodeProperties(currentD.name, nodeDet);
-
-                            var oldDur = window.valueTree.translationDuration;
-                            window.valueTree.translationDuration = 0;
-                            window.valueTree.recalcData(model.getAllNodes());
-                            window.valueTree.translationDuration = oldDur;
-                        }
-
-                        _self._resetDialog();
-                        $(_self.dialogID).jqxWindow('close');
-                    });
-                }
-            });
-
-            // Odprtje dialoga ob kreaciji.
-            if(_self.options.autoOpen){
-                _self.open();
-            }
-        },
-
-        open: function(node){
-            // Metoda odpre dialog za kreiranje/spreminjanje vozlišča.
-            // Če ima podano vozlišče je način odprtja Modification (M), sicer Creation (C).
-            var _self = this;
-
-            if(typeof(node) == 'undefined'){
-                _self.openMode = 'C';
-            }
-            else{
-                _self.openMode = "M";
-            }
-
-            _self._resetDialog();
-            _self.node = node;
-
-            if(_self.openMode == "M"){
-                _self._refreshDialog();
-            }
-
-            $(_self.dialogID).jqxWindow('open');
-        },
-
-        _resetDialog: function(){
-            var _self = this;
-
-            $(_self.dialogID).jqxWindow({        
-                position: {
-                    x: ($(document).width() / 2) - (_self.options.width / 2),
-                    y: (($(window).height()/2) - (_self.options.height / 2) + $(document).scrollTop())
-                }
-            });
-
-            $("#tfNameNode").val('');
-            $("#taDescriptionNode").val('');
-        },
-
-        _refreshDialog: function(){
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno nastavljene v modelu.
-            if(typeof(this.node) == 'undefined'){
-                return;
-            }
-
-            $("#tfNameNode").val(this.node.name);
-            $("#taDescriptionNode").val(this.node.description);
-
-            this._refreshControls();
-        },
-
-        _refreshControls: function(){
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno vnešene v kontrolah.
-
-            // TRENUTNO PRAZNA METODA.            
+        if(typeof(criterion) == 'undefined'){
+            _self.openMode = 'C';
         }
-    });
-})(jQuery);
+        else{
+            _self.openMode = "M";
+        }
+
+        _self.resetDialogContent();
+        _self.criterion = criterion;
+
+        if(_self.openMode == "M"){
+            _self.setDialogContent(criterion);
+        }
+
+        $(_self.selector).jqxWindow('open');
+    }
 
 
-//////////////////////////////////
-//////    DIALOG VAL. FUNC. PIECEWISE
-//////////////////////////////////
+    //////////////////////////////////
+    //////    DIALOG VAL. FUNC. PIECEWISE
+    //////////////////////////////////
 
-(function( $ ){
+    function FVDialogValueFunctionPicewise(selector){
 
-    $.widget('myWidget.DialogPiecewise', {
-
-        options: {
+        var windowOptions = {
             width: 550,
             height: 550,
-        },
+        };
 
-        criterion: {},
-        dialogID: "",
+        FVDialogWindow.call(this, selector, windowOptions);
 
-        numOfPoints: 4,
-        points: [],
-        xAxisLabel: "Criterion",
-        min: 0,
-        max: 100,
-        chart: {},
+        this.criterion = {};
 
-        _create: function(){
-            var _self = this;
+        this.defaultNumberOfPoints = 4;
+        this.numOfPoints = this.defaultNumberOfPoints;
+        this.points = [];
+        this.xAxisLabel = "Kriterij";
+        this.min = 0;
+        this.max = 100;
 
-            _self.dialogID =  "#" + $(this.element).prop('id');
+        this.chart = {};
 
-            $(_self.dialogID).jqxWindow({
-                height: this.options.height,
-                width: this.options.width,
-                resizable: false,
-                isModal: true,
-                autoOpen: false,
-                draggable: true,
-                initContent: function(){
-                    // _self.resetGraph();
+        this.URManager = new UMG(this.getStateOfWindow, this.setStateOfWindow, 100, false, this);
+    }
+    FVDialogValueFunctionPicewise.prototype = Object.create(FVDialogWindow.prototype);
+    FVDialogValueFunctionPicewise.prototype.constructor = FVDialogValueFunctionPicewise;
 
-                    $('#btnResetPiecewiseGraph').jqxButton({width:115});
-                    $('#btnResetPiecewiseGraph').on('click', function(event){
-                        _self._resetGraph();
-                    });
+    FVDialogValueFunctionPicewise.prototype.initDialogContent = function(){
+        var _self = this;
 
-                    $('#btnSavePiecewise').jqxButton({width:55});
-                    $('#btnSavePiecewise').on('click', function(){
-                        
-                        var pointsToSave = [];
-                        _self.chart.series[0].data.forEach(function(point, indx){
-                            pointsToSave.push({
-                                x: parseFloat(point.x.toFixed(2)),
-                                y: parseFloat(point.y.toFixed(2)),
-                                myIndex: point.myIndex
-                            });
-                        });
+        $('#btnResetPiecewiseGraph').jqxButton({width:115});
+        $('#btnResetPiecewiseGraph').on('click', function(event){
+            _self.numOfPoints = parseInt($('#selNumOfPointsPiecewise').val());
+            _self.resetGraph();
+            _self.drawGraph();
+            _self.URManager.saveState();
+        });
 
-                        pointsToSave = _self._firstAndLastPointCheck(pointsToSave);
+        $('#btnSavePiecewise').jqxButton({width:55});
+        $('#btnSavePiecewise').on('click', function(){
+            _self.saveChanges();
+            _self.close();
+        });
 
-                        _self.criterion.valueFunction.points = pointsToSave;
+        $('#btnClosePiecewise').jqxButton({width:55});
+        $('#btnClosePiecewise').on('click', function(){
+            window.valueTree.URManager.setAsCurrentUMG();
+            _self.close();
+        });
 
-                        _self.close();
-                    });
+        $('#selNumOfPointsPiecewise').val(this.defaultNumberOfPoints);
+        $('#selNumOfPointsPiecewise').on('change', function(event){
+            _self.numOfPoints = parseInt($('#selNumOfPointsPiecewise').val());
+            // _self.resetGraph();
+            // _self.drawGraph();
+        });
+    }
 
-                    $('#btnClosePiecewise').jqxButton({width:55});
-                    $('#btnClosePiecewise').on('click', function(){
+    FVDialogValueFunctionPicewise.prototype.resetDialogContent = function(){
+        var _self = this;
 
-                        _self.close();
-                    });
+        _self.numOfPoints = this.defaultNumberOfPoints;
+        _self.points = [];
+        _self.xAxisLabel = "Criterion";
+        _self.min = 0;
+        _self.max = 100;
 
-                    $('#selNumOfPointsPiecewise').on('change', function(event){
-                        _self.numOfPoints = parseInt($('#selNumOfPointsPiecewise').val());
-                    });
-                }
-            });
+        $('#selNumOfPointsPiecewise').val(_self.numOfPoints);
 
-            // Odprtje dialoga ob kreaciji.
-            if(this.options.autoOpen){
-                this.open();
-            }
-        },
+        _self.resetGraph();
+    }
 
-        open: function(criterion){
-            // Metoda odpre dialog za kreiranje/spreminjanje vozlišča.
-            // Če ima podano vozlišče je način odprtja Modification (M), sicer Creation (C).
-            var _self = this;
+    FVDialogValueFunctionPicewise.prototype.setDialogContent = function(criterion){
+        var _self = this;
 
-            this.criterion = criterion;
+        this.xAxisLabel = criterion.name;
+        this.min = parseFloat(criterion.minValue);
+        this.max = parseFloat(criterion.maxValue);
 
-            this._resetDialog();    
+        if(criterion.valueFunction.points.length != 0){
+            this.numOfPoints = criterion.valueFunction.points.length;
+            this.points = _self.firstAndLastPointCheck(criterion.valueFunction.points);
+        }
+        else{
+            this.points = _self.generateDefaultPointsForRange();
+            this.numOfPoints = this.defaultNumberOfPoints;
+        }
 
-            var isValid = _self._validateBeforeOpen();
-            if(!isValid){
-                return;
-            }
-            if(criterion.scaleType == 'relative'){
-                
-                model.refreshMinMaxValueOfCriterion(criterion);
-            }
+        $('#selNumOfPointsPiecewise').val(_self.numOfPoints);
 
-            this.xAxisLabel = this.criterion.name;
-            this.min = parseFloat(this.criterion.minValue);
-            this.max = parseFloat(this.criterion.maxValue);
+        this.drawGraph();
+    }
 
-            if(this.criterion.valueFunction.points.length != 0){
-                this.points = this.criterion.valueFunction.points;
-                this.numOfPoints = this.criterion.valueFunction.points.length;
-                this.points = _self._firstAndLastPointCheck(this.points);
-            }
-            else{
-                this.numOfPoints
-            }
+    FVDialogValueFunctionPicewise.prototype.open = function(criterion){
+        // Metoda odpre dialog za kreiranje/spreminjanje vozlišča.
+        // Če ima podano vozlišče je način odprtja Modification (M), sicer Creation (C).
+        var _self = this;
+        
+        if(typeof(criterion) == 'undefined'){
+            throw "Dialogu ni bil podan noben kriterij."
+        }
 
-            this._refreshDialog();
+        if(criterion.valueFunction.type != 'piecewise'){
+            throw "Grafa za piecewise ni mogoče generirati za tip: " + criterion.valueFunction.type;
+        }
+
+        this.centralizeDialog();
+
+        this.resetDialogContent();    
+
+        this.criterion = criterion;
+
+        var isValid = _self.validateBeforeOpen();
+        if(!isValid){
+            return;
+        }
+
+        if(criterion.scaleType == 'relative'){
             
-            $(_self.dialogID).jqxWindow('open');
-        },
+            model.refreshMinMaxValueOfCriterion(criterion);
+        }
 
-        close: function(){
+        _self.setDialogContent(criterion);
 
-            this._resetDialog();
-            $('#dialogValFuncPiecewise').jqxWindow('close');
-        },
+        _self.URManager.setAsCurrentUMG();
+        _self.URManager.saveState();
 
-        _resetDialog: function(){
-            var _self = this;
+        $(_self.selector).jqxWindow('open');
+    }
 
-            this._resetGraph();
-            $('#selNumOfPointsPiecewise').val(0);
-            this.numOfPoints = 4;
-            this.points = [];
-            this.xAxisLabel = "Criterion";
-            this.min = 0;
-            this.max = 100;
+    FVDialogValueFunctionPicewise.prototype.resetGraph = function(){
+        // Resetira picewise graf in naredi klic ponovnega izrisa.
+        var _self = this;
 
-            $(_self.dialogID).jqxWindow({        
-                position: {
-                    x: ($(document).width() / 2) - (_self.options.width / 2),
-                    y: (($(window).height()/2) - (_self.options.height / 2) + $(document).scrollTop())
+        // Ne prestavljaj, čene lahko pride do napake. ali pa naredi reset grafa z series[n].remove(true))
+        $('#graphValFuncPiecewise').html('');
+        _self.points = [];
+
+        if(typeof(_self.numOfPoints) === 'undefined' || _self.numOfPoints == 0){
+            _self.drawGraph();
+
+            return;
+        }
+
+        _self.points = _self.generateDefaultPointsForRange();
+
+        _self.drawGraph();
+    }
+
+    FVDialogValueFunctionPicewise.prototype.generateDefaultPointsForRange = function(){
+        var _self = this;
+
+        var points = [];
+
+        var xRange = _self.max - _self.min;
+
+        var x = _self.min;
+        var xStep = xRange / (_self.numOfPoints-1);
+        var y = 100;
+        var yStep = 100 / (_self.numOfPoints-1);
+        for(var i = 0; i < _self.numOfPoints; i++){
+            // Točki doda še index myIndex.
+            // To se uporablja pri prikazu, za pomoč pri omejevanju premikanja točke, ki omogoča,
+            // da graf vsebuje pravilno funkcijo.
+
+            var newPoint = {
+                x:x, 
+                y:y,
+                myIndex: i
+            };
+
+            points.push(newPoint);
+
+            x += xStep;
+            y -= yStep;
+        }
+        points[points.length-1].y = 0;
+        points[points.length-1].x = _self.max;
+
+        return points;
+    }
+
+    FVDialogValueFunctionPicewise.prototype.drawGraph = function(){
+
+        var _self = this;
+           
+        // Točke je potrebno kopirati (sicer so referencirane in se tudi ob Close "shrani" trenutna pozicija)
+        var points = [];
+        _self.points.forEach(function(el, indx){
+            points.push({
+                x: el.x,
+                y: el.y,
+                myIndex: el.myIndex
+            });
+        });
+
+        _self.chart = new Highcharts.Chart({
+            chart: {
+                renderTo: 'graphValFuncPiecewise',
+                animation: false,
+            },
+            title: {
+                text: ''
+            },
+            xAxis: {
+                min: _self.min,
+                max: _self.max,
+                startOnTick: true,
+                endOnTick: true,
+                title:{
+                    text: _self.xAxisLabel
+                },
+            },
+            yAxis:{
+                max: 100,
+                min: 0,
+                title:{
+                    text:'Preferenčna vrednost'
+                },
+            },
+            plotOptions: {
+                column: {
+                    stacking: 'normal'
+                },
+                line: {
+                    cursor: 'ns-resize'
+                }
+            },
+            tooltip: {
+                enabled: true,
+                useHTML:true,
+                valueDecimals: 2,
+                formatter: function(){
+                    return '<b>Preferenčna vrednost:</b> ' + this.y.toFixed(2) + '</br> <b>' + _self.criterion.name + ':</b> ' + this.x.toFixed(2);
+                }
+            },
+            series: [{
+                data: points,
+                point: {
+                    events: {
+                        update: function(event){
+                            // Metoda skrbi, da se točke na grafu lahko premikajo samo v intervalu od prejšnje do naslednje točke po X osi.
+                            // Kadar bi prišlo do prekoračitve in je potrebno razveljaviti premik je potrebno vrniti false.
+
+                            var pointIndx = event.currentTarget.myIndex
+                            var numOfPoints = event.currentTarget.series.data.length;
+
+                            var min = _self.min;
+                            var max = _self.max;
+
+                            if(pointIndx != 0){
+                                min = event.currentTarget.series.data[pointIndx - 1].options.x;
+                            }
+                            
+                            if(pointIndx != numOfPoints-1){
+                                max = event.currentTarget.series.data[pointIndx + 1].options.x;
+                            }
+
+                            // valToAdd je zato, da pride pri vlečenju točk do lepih intervalov.
+                            // Če gre za prvo točko in min ali za zadnjo in max potem se ne doda/odšteje nič.
+                            var valToAdd = 0.01
+                            if(event.options.x >= max){
+                                // Ali gre za zadnjo točko.
+                                if(pointIndx == numOfPoints - 1){
+                                    valToAdd = 0.00
+                                }
+                                event.options.x = max - valToAdd
+                            }
+
+                            if(event.options.x <= min){
+                                // Ali gre za prvo točko.
+                                if(pointIndx == 0){
+                                    valToAdd = 0.00
+                                }
+                                event.options.x = min + valToAdd
+                            }
+                            // if(event.options.x <= min || event.options.x >= max){
+                            //     return false;
+                            // }
+                        },
+                        drop: function(event){
+                            _self.URManager.saveState(_self);
+                        }
+                    }
+                },
+                draggableY: true,
+                draggableX: true,
+                dragMinY:0,
+                dragMinX:_self.min,
+                dragMaxY:100,
+                dragMaxX:_self.max,
+                pointInterval: 1,
+                showInLegend: false
+            },
+            {
+                name: "spodnja meja",
+                data: [{x: _self.min, y:0}, {x:_self.min, y:100}],
+                color: '#cccccc',
+                lineWidth: 1,
+                states: { hover: {enabled: false}},
+                enableMouseTracking: false
+            },
+            {
+                name: "zgornja meja",
+                data: [{x: _self.max, y:0}, {x:_self.max, y:100}],
+                color: '#cccccc',
+                lineWidth: 1,
+                states: { hover: {enabled: false}},
+                enableMouseTracking: false
+            }]
+        });
+
+        // Skrivanje Highcharts.com napisa v spodnjem desnem kotu grafa...
+        $('text:contains("Highcharts.com")').remove();
+    }
+
+    FVDialogValueFunctionPicewise.prototype.validateBeforeOpen = function(){
+        // Metoda preveri ali je model veljaven za odprtje dialoga Piecewise.
+        var _self = this;
+
+        var variants = model.getVariants();
+        var variantKeys = Object.keys(variants);
+
+        if(variantKeys.length == 0 && _self.criterion.scaleType == "relative"){
+            $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
+                height: 180,
+                onlyYes: true,
+                headerText: 'Opozorilo!',
+                contentText: "Dialoga ni možno odpreti. Prvo je potrebno vnesti variante, da se pridobi min in max vrednost.",
+                yesAction: function(){
+                    // Fukcija proži brisanje kategorije.
+
+                    $(event.target).closest('.categoryDiv').remove();
+
+                    // var catName = $(event.target).closest('.categoryDiv').find('.categoryNameText span').html();
+                    // _self._removeCategory(catName);
                 }
             });
-        },
 
-        _refreshDialog: function(){
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno nastavljene v modelu.
-            if(typeof(this.criterion) == 'undefined'){
-                return;
-            }
+            return false;
+        }
 
-            if(this.criterion.valueFunction.type != 'piecewise'){
-                throw "Grafa za piecewise ni mogoče generirati za tip: " + this.criterion.valueFunction.type;
-            }
-
-            if(this.points.length == 0){
-                this._resetGraph();
-            }
-            else{
-                this._setGraph();
-            }
-
-            $('#selNumOfPointsPiecewise').val(this.numOfPoints);
-
-            this._refreshControls();
-        },
-
-        _refreshControls: function(){
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno vnešene v kontrolah.
-
-            // TRENUTNO PRAZNA METODA.            
-        },
-
-        _setGraph: function(){
-            // Metoda nastavi graf glede na lastnosti ki jih vsebuje criterion.
-
-            $('#selNumOfPointsPiecewise').val(this.numOfPoints);
-
-            $('#graphValFuncPiecewise').html('');
-
-            this._generateGraph();
-        },
-
-        _resetGraph: function(){
-            var _self = this;
-
-            // Pazi to ni najboljši način! (ne prestavljaj, čene lahko pride do napake. ali pa naredi reset grafa z series[n].remove(true))
-            $('#graphValFuncPiecewise').html('');
-            this.points = [];
-
-            var xRange = this.max - this.min;
-     
-            // Generiranje točk na grafu.
-            var x = this.min;
-            var xStep = xRange / (_self.numOfPoints-1);
-            var y = 100;
-            var yStep = 100 / (_self.numOfPoints-1);
-            for(var i = 0; i < _self.numOfPoints; i++){
-                // Točki doda še index myIndex.
-                // To se uporablja pri prikazu, za pomoč pri omejevanju premikanja točke, ki omogoča,
-                // da graf vsebuje pravilno funkcijo.
-
-                var newPoint = {
-                    x:x, 
-                    y:y,
-                    myIndex: i
-                };
-
-                this.points.push(newPoint);
-
-                x += xStep;
-                y -= yStep;
-            }
-            this.points[this.points.length-1].y = 0;
-            this.points[this.points.length-1].x = this.max;
-
-            this._generateGraph();
-        },
-
-        _generateGraph: function(){
-            var _self = this;
-           
-            // Točke je potrebno kopirati (sicer so referencirane in se tudi ob Close "shrani" trenutna pozicija)
-            var points = [];
-            _self.points.forEach(function(el, indx){
-                points.push({
-                    x: el.x,
-                    y: el.y,
-                    myIndex: el.myIndex
-                });
-            });
-
-            _self.chart = new Highcharts.Chart({
-                chart: {
-                    renderTo: 'graphValFuncPiecewise',
-                    animation: false,
-                },
-                title: {
-                    text: ''
-                },
-                xAxis: {
-                    min: _self.min,
-                    max: _self.max,
-                    startOnTick: true,
-                    endOnTick: true,
-                    title:{
-                        text: _self.xAxisLabel
-                    },
-                },
-                yAxis:{
-                    max: 100,
-                    min: 0,
-                    title:{
-                        text:'Preferenčna vrednost'
-                    },
-                },
-                plotOptions: {
-                    column: {
-                        stacking: 'normal'
-                    },
-                    line: {
-                        cursor: 'ns-resize'
-                    }
-                },
-                tooltip: {
-                    enabled: true,
-                    useHTML:true,
-                    valueDecimals: 2,
-                    formatter: function(){
-                        return '<b>Preferenčna vrednost:</b> ' + this.y.toFixed(2) + '</br> <b>' + _self.criterion.name + ':</b> ' + this.x.toFixed(2);
-                    }
-                },
-                series: [{
-                    data: points,
-                    point: {
-                        events: {
-                            update: function(event){
-                                // Metoda skrbi, da se točke na grafu lahko premikajo samo v intervalu od prejšnje do naslednje točke po X osi.
-                                // Kadar bi prišlo do prekoračitve in je potrebno razveljaviti premik je potrebno vrniti false.
-
-                                var pointIndx = event.currentTarget.myIndex
-                                var numOfPoints = event.currentTarget.series.data.length;
-
-                                var min = _self.min;
-                                var max = _self.max;
-
-                                if(pointIndx != 0){
-                                    min = event.currentTarget.series.data[pointIndx - 1].options.x;
-                                }
-                                
-                                if(pointIndx != numOfPoints-1){
-                                    max = event.currentTarget.series.data[pointIndx + 1].options.x;
-                                }
-
-                                // valToAdd je zato, da pride pri vlečenju točk do lepih intervalov.
-                                // Če gre za prvo točko in min ali za zadnjo in max potem se ne doda/odšteje nič.
-                                var valToAdd = 0.01
-                                if(event.options.x >= max){
-                                    // Ali gre za zadnjo točko.
-                                    if(pointIndx == numOfPoints - 1){
-                                        valToAdd = 0.00
-                                    }
-                                    event.options.x = max - valToAdd
-                                }
-
-                                if(event.options.x <= min){
-                                    // Ali gre za prvo točko.
-                                    if(pointIndx == 0){
-                                        valToAdd = 0.00
-                                    }
-                                    event.options.x = min + valToAdd
-                                }
-                                // if(event.options.x <= min || event.options.x >= max){
-                                //     return false;
-                                // }
-                            }
-                        }
-                    },
-                    draggableY: true,
-                    draggableX: true,
-                    dragMinY:0,
-                    dragMinX:_self.min,
-                    dragMaxY:100,
-                    dragMaxX:_self.max,
-                    pointInterval: 1,
-                    showInLegend: false
-                },
-                {
-                    name: "minBound",
-                    data: [{x: _self.min, y:0}, {x:_self.min, y:100}],
-                    color: '#cccccc',
-                    lineWidth: 1,
-                    states: { hover: {enabled: false}},
-                    enableMouseTracking: false
-                },
-                {
-                    name: "maxBound",
-                    data: [{x: _self.max, y:0}, {x:_self.max, y:100}],
-                    color: '#cccccc',
-                    lineWidth: 1,
-                    states: { hover: {enabled: false}},
-                    enableMouseTracking: false
-                }]
-            });
-
-
-            // Skrivanje Highcharts.com napisa v spodnjem desnem kotu grafa...
-            $('text:contains("Highcharts.com")').remove();
-        },
-
-        _firstAndLastPointCheck: function(points){
-            // Metoda nastavi prvi točki vrednost po x-u na min in zadnji točki po x-u na max.
-            // Če trenutni mejni točki nista na min in max naredi novi mejni točki, ki ju nastavi na min in max.
-            // Tako je zmeraj pokrit celoten interval.
-            var _self = this;
-
-            if(points.length == 0){
-                return;
-            }
-
-            var len = points.length;
-            var firstPoint = points[0];
-            var lastPoint = points[len - 1];
-
-            var change = false;
-            if(firstPoint.x != _self.min){
-                points.unshift({
-                    x: _self.min,
-                    y: firstPoint.y
-                });
-                change = true;
-            }
-
-            if(lastPoint.x != _self.max){
-                points.push({
-                    x: _self.max,
-                    y: lastPoint.y
-                });   
-                change = true;
-            }
-
-            // Še reset myIndex vrednosti.
-            if(change){
-                points.forEach(function(el, indx){
-                    el.myIndex = indx;
-                });
-            }
-
-            return points;
-        },
-
-        _validateBeforeOpen: function(){
-            // Metoda preveri ali je model velaven za odprtje dialoga Piecewise.
-            var _self = this;
-
-            var variants = model.getVariants();
-            var variantKeys = Object.keys(variants);
-
-            if(variantKeys.length == 0){
-                $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                    height: 180,
-                    onlyYes: true,
-                    headerText: 'Opozorilo!',
-                    contentText: "Dialoga ni možno odpreti. Prvo je potrebno vnesti variante, da se pridobi min in max vrednost.",
-                    yesAction: function(){
-                        // Fukcija proži brisanje kategorije.
-
-                        $(event.target).closest('.categoryDiv').remove();
-
-                        // var catName = $(event.target).closest('.categoryDiv').find('.categoryNameText span').html();
-                        // _self._removeCategory(catName);
-                    }
-                });
-
-                return false;
-            }
-
+        if(_self.criterion.scaleType == "relative"){
             for(var i=0; i < variantKeys.length; i++){
 
                 var variant = variants[i];
@@ -2336,325 +2366,426 @@ function ValueTree(){
                     return false;
                 }
             }
-
-            return true;
         }
-    });
-})(jQuery);
+        
+        return true;
+    }
+
+    FVDialogValueFunctionPicewise.prototype.firstAndLastPointCheck = function(points){
+        // Metoda nastavi prvi točki vrednost po x-u na min in zadnji točki po x-u na max.
+        // Če trenutni mejni točki nista na min in max naredi novi mejni točki, ki ju nastavi na min in max.
+        // Tako je zmeraj pokrit celoten interval.
+        var _self = this;
+
+        if(points.length == 0){
+            return;
+        }
+
+        var len = points.length;
+        var firstPoint = points[0];
+        var lastPoint = points[len - 1];
+
+        var change = false;
+        if(firstPoint.x != _self.min){
+            points.unshift({
+                x: _self.min,
+                y: firstPoint.y
+            });
+            change = true;
+        }
+
+        if(lastPoint.x != _self.max){
+            points.push({
+                x: _self.max,
+                y: lastPoint.y
+            });   
+            change = true;
+        }
+
+        // Še reset myIndex vrednosti.
+        if(change){
+            points.forEach(function(el, indx){
+                el.myIndex = indx;
+            });
+        }
+
+        return points;
+    }
+
+    FVDialogValueFunctionPicewise.prototype.getStateOfWindow = function(){
+        // Funkcija vrne stanje okna. (vse trenutne nastavitve za undo/redo).
+        // Funkcija mora vrniti objekt po katerem (z takimi lastnostmi) lahko funkcija setDialogContent nastavi lastnosti okna
+        // Stanje mora biti v obliki stringa.
+        var _self = this;
+
+        var objState = {
+            name: _self.xAxisLabel,
+            minValue: _self.min,
+            maxValue: _self.max,
+            valueFunction: {
+                points: _self.getPointsFromGraph()
+            }
+        };
+
+        var strState = JSON.stringify(objState);
+
+        return strState;
+    }
+
+    FVDialogValueFunctionPicewise.prototype.setStateOfWindow = function(strState){
+        // Funkcija nastavi stanje okna. (vse trenutne nastavitve za undo/redo)
+        var _self = this;
+
+        var objState = JSON.parse(strState);
+
+        _self.resetDialogContent();
+
+        _self.setDialogContent(objState);
+    }
+
+    FVDialogValueFunctionPicewise.prototype.saveChanges = function(points){
+        var _self = this;
+
+        var pointsToSave = _self.getPointsFromGraph();
+
+        _self.criterion.valueFunction.points = pointsToSave;
+    }
+
+    FVDialogValueFunctionPicewise.prototype.getPointsFromGraph = function(){
+        // Funkcija pridobi točke iz trenutnega grafa.
+        var _self = this;
+
+        var points = [];
+        _self.chart.series[0].data.forEach(function(point, indx){
+            points.push({
+                x: parseFloat(point.x.toFixed(2)),
+                y: parseFloat(point.y.toFixed(2)),
+                myIndex: point.myIndex
+            });
+        });
+
+        points = _self.firstAndLastPointCheck(points);
+
+        return points;
+    }
 
 
-//////////////////////////////////
-//////    DIALOG VAL. FUNC. LINEAR
-//////////////////////////////////
+    //////////////////////////////////
+    //////    DIALOG VAL. FUNC. LINEAR
+    //////////////////////////////////
 
-(function( $ ){
+    function FVDidalogValueFunctionLinear(selector){
 
-    $.widget('myWidget.DialogLinear', {
-
-        options: {
+        var windowOptions = {
             width: 550,
             height: 550,
-        },
+        };
 
-        criterion: {},
-        dialogID: "",
+        FVDialogWindow.call(this, selector, windowOptions);
 
-        points: [],
-        pointsObjects: [],
-        xAxisLabel: "Criterion",
-        min: 0,
-        max: 100,
-        chart: {},
+        this.criterion = {};
 
-        _create: function(){
-            var _self = this;
+        this.points = [];
+        this.pointsObjects = [];
+        this.xAxisLabel = "Kriterij";
+        this.min = 0;
+        this.max = 100;
+        this.chart = {};
+    }
+    FVDidalogValueFunctionLinear.prototype = Object.create(FVDialogWindow.prototype);
+    FVDidalogValueFunctionLinear.prototype.constructor = FVDidalogValueFunctionLinear;
 
-            _self.dialogID =  "#" + $(this.element).prop('id');
+    FVDidalogValueFunctionLinear.prototype.initDialogContent = function(){
+        var _self = this;
 
-            $(_self.dialogID).jqxWindow({
-                height: this.options.height,
-                width: this.options.width,
-                resizable: false,
-                isModal: true,
-                autoOpen: false,
-                draggable: true,
-                initContent: function(){
-                    // _self.resetGraph();
+        $('#btnCloseLinear').jqxButton({width:55});
+        $('#btnCloseLinear').on('click', function(){
 
-                    $('#btnCloseLinear').jqxButton({width:55});
-                    $('#btnCloseLinear').on('click', function(){
+            _self.close();
+        });
+    }
 
-                        _self.close();
-                    });
-                }
-            });
+    FVDidalogValueFunctionLinear.prototype.resetDialogContent = function(){
+        var _self = this;
 
-            // Odprtje dialoga ob kreaciji.
-            if(this.options.autoOpen){
-                this.open();
-            }
-        },
+        this.xAxisLabel = "Criterion";
+        this.min = 0;
+        this.max = 100;
 
-        open: function(criterion){
-            // Metoda odpre dialog za kreiranje/spreminjanje vozlišča.
-            // Če ima podano vozlišče je način odprtja Modification (M), sicer Creation (C).
-            var _self = this;
+        _self.resetGraph();
+    }
 
-            _self.criterion = criterion;
+    FVDidalogValueFunctionLinear.prototype.setDialogContent = function(criterion){
+        var _self = this;
 
-            var isValid = _self._validateBeforeOpen();
-            if(!isValid){
-                return;
-            }
+        _self.xAxisLabel = this.criterion.name;
+        _self.min = parseFloat(this.criterion.minValue);
+        _self.max = parseFloat(this.criterion.maxValue);
 
-            if(criterion.scaleType == 'relative'){
+        var pointsResult = _self.generateDefaultPoints();
+        _self.points = pointsResult.points;
+        _self.pointsObjects = pointsResult.pointsObjects;
+
+        _self.drawGraph();
+    }
+
+    FVDidalogValueFunctionLinear.prototype.open = function(criterion){
+
+        var _self = this;
+
+        if(criterion.valueFunction.type != 'linear'){
+            throw "Grafa za linear ni mogoče generirati za tip: " + this.criterion.valueFunction.type;
+        }
+
+        this.criterion = criterion;
+
+        var isValid = _self.validateBeforeOpen();
+        if(!isValid){
+            return;
+        }
+
+        this.centralizeDialog();
+
+        this.resetDialogContent();    
+
+        if(criterion.scaleType == 'relative'){
                 
-                model.refreshMinMaxValueOfCriterion(criterion);
-            }
+            model.refreshMinMaxValueOfCriterion(criterion);
+        }
 
-            _self.xAxisLabel = this.criterion.name;
-            _self.min = parseFloat(this.criterion.minValue);
-            _self.max = parseFloat(this.criterion.maxValue);
+        _self.setDialogContent(criterion);
 
-            _self._refreshDialog();
-            
-            $(_self.dialogID).jqxWindow('open');
-        },
+        $(_self.selector).jqxWindow('open');
+    }
 
-        close: function(){
+    FVDidalogValueFunctionLinear.prototype.resetGraph = function(){
+        var _self = this;
 
-            this._resetDialog();
-            $('#dialogValFuncLinear').jqxWindow('close');
-        },
-
-        _resetDialog: function(){
-            var _self = this;
-
-            // Pobriše vse črte na grafu.
+        // Pobriše vse črte na grafu.
+        if(typeof(_self.chart.series) != 'undefined'){
             while(_self.chart.series.length > 0){
                 _self.chart.series[0].remove(true);
             }
+        }
 
-            this.xAxisLabel = "Criterion";
-            this.min = 0;
-            this.max = 100;
-        },
+        var pointsResult = _self.generateDefaultPoints();
+        _self.points = pointsResult.points;
+        _self.pointsObjects = pointsResult.pointsObjects;
 
-        _refreshDialog: function(){
-            var _self = this;
+        _self.drawGraph();
+    }
 
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno nastavljene v modelu.
-            if(typeof(this.criterion) == 'undefined'){
-                return;
-            }
+    FVDidalogValueFunctionLinear.prototype.generateDefaultPoints = function(){
+        var _self = this;
 
-            if(this.criterion.valueFunction.type != 'linear'){
-                throw "Grafa za linear ni mogoče generirati za tip: " + this.criterion.valueFunction.type;
-            }
+        // Pridobi variante in iz njih sestavi črto grafa.
+        // Točke na črti so vrednosti obstoječih variant.
 
-            var xPos = ($(document).width() / 2) - (_self.options.width / 2);
-            var yPos =  (($(window).height()/2) - (_self.options.height / 2) + $(document).scrollTop());
-            if(xPos < 0 ){
-                xPos = 0;
-            }
-            if(yPos < 0){
-                yPos = 0;
-            }
-            $(_self.dialogID).jqxWindow({        
-                position: {
-                    x: xPos,
-                    y: yPos
-                }
+        var pointsObjects = [];
+
+        var variants = model.getVariants();
+        var variantsKeys = Object.keys(variants);
+        variantsKeys.forEach(function(el, indx){
+            
+            var variant = variants[el];
+            var val = variant[_self.criterion.name];
+
+            // Pridobitev variant z isto vrednostsjo, ki so že dodane na točke grafa.
+            var withSameVal = $.grep(pointsObjects, function(el, indx){
+                return el.val == val;
             });
 
-            this._refreshGraph();
-        },
+            // Če že obstajajo variante z enako vrdnostjo ime variante samo doda, v nasprotnem primeru ustvari novo točko.
+            if(withSameVal.length == 0){
 
-        _refreshGraph: function(){
-            var _self = this;
-
-            var xRange = _self.max - _self.min;
-            
-            // Pridobi variante in iz njih sestavi črto grafa.
-            // Točke na črti so vrednosti obstoječih variant.
-            _self.pointsObjects = [];
-
-            var variants = model.getVariants();
-            var variantsKeys = Object.keys(variants);
-            variantsKeys.forEach(function(el, indx){
-                
-                var variant = variants[el];
-                var val = variant[_self.criterion.name];
-
-                // Pridobitev variant z isto vrednostsjo, ki so že dodane na točke grafa.
-                var withSameVal = $.grep(_self.pointsObjects, function(el, indx){
-                    return el.val == val;
+                pointsObjects.push({
+                    variantNames: [ variant["Option"] ],
+                    val: val
                 });
-
-                // Če že obstajajo variante z enako vrdnostjo ime variante samo doda, v nasprotnem primeru ustvari novo točko.
-                if(withSameVal.length == 0){
-
-                    _self.pointsObjects.push({
-                        variantNames: [ variant["Option"] ],
-                        val: val
-                    });
-                }
-                else if(withSameVal.length == 1){
-                    withSameVal[0].variantNames.push(variant["Option"]);
-                }
-                else{
-                    throw "Ne more biti več kot en element z eno vrednostjo v seznamu točk!";
-                }
-            });
-            
-            // Pridobljene objekte - točke spremeni v točke za graf (z x in y kordinato).
-            _self.points = [];
-            _self.pointsObjects.forEach(function(el, indx){
-
-                var xVal = el.val;
-                var yVal = model.linearInterpolation(el.val, _self.min, 0, _self.max, 100);
-
-                var isInverse = $.parseJSON(_self.criterion.inverseScale);
-                if(isInverse == true){
-                    yVal = 100 - yVal;
-                }
-
-                _self.points.push({
-                    x: xVal,
-                    y: yVal
-                });
-            }); 
-            
-            // Popravilo intervala.
-            _self._repairIntervalOfGraphForFixedCriterion();
-
-            _self._generateGraph();
-        },
-
-        _repairIntervalOfGraphForFixedCriterion: function(){
-            // Črta mora obstajati od začetka do konca! Zato kadar gre za Fixed potegne črto do obeh koncev(kadar vrednosti variant ne pokrivajo celotnega intervala).
-
-            var _self = this;
-
-            _self.points.sort(function(a, b){
-                return b.val - a.val;
-            });
-
-            if(_self.criterion.scaleType == "fixed"){
-
-                var minPoint = _self.points[0];
-                var maxPoint = _self.points[_self.points.length - 1];
-
-                var yMin = 0;
-                var yMax = 100;
-
-                // V primeru inversa min in max točki obrne y vrednosti.
-                var isInverse = $.parseJSON(_self.criterion.inverseScale);
-                if(isInverse == true){
-                    yMin = 100;
-                    yMax = 0;
-                }
-
-                if(minPoint.x > _self.min){
-                    _self.points.unshift({
-                        x: _self.min,
-                        y: yMin
-                    });
-                }
-                if(maxPoint.x < _self.max){
-                    _self.points.push({
-                        x: _self.max,
-                        y: yMax
-                    });
-                }
             }
-        },
+            else if(withSameVal.length == 1){
+                withSameVal[0].variantNames.push(variant["Option"]);
+            }
+            else{
+                throw "Ne more biti več kot en element z eno vrednostjo v seznamu točk!";
+            }
+        });
+        
+        // Pridobljene objekte - točke spremeni v točke za graf (z x in y kordinato).
+        var points = [];
+        pointsObjects.forEach(function(el, indx){
 
-        _generateGraph: function(){
-            var _self = this;
+            var xVal = el.val;
+            var yVal = model.linearInterpolation(el.val, _self.min, 0, _self.max, 100);
+
+            var isInverse = $.parseJSON(_self.criterion.inverseScale);
+            if(isInverse == true){
+                yVal = 100 - yVal;
+            }
+
+            points.push({
+                x: xVal,
+                y: yVal
+            });
+        }); 
+
+        points = _self.repairIntervalOfGraphForFixedCriterion(points);
+
+        return {
+            pointsObjects: pointsObjects,
+            points: points
+        }
+    }
+
+    FVDidalogValueFunctionLinear.prototype.repairIntervalOfGraphForFixedCriterion = function(points){
+        // Črta mora obstajati od začetka do konca! Zato kadar gre za Fixed potegne črto do obeh koncev(kadar vrednosti variant ne pokrivajo celotnega intervala).
+
+        var _self = this;
+
+        points.sort(function(a, b){
+            return b.val - a.val;
+        });
+
+        if(_self.criterion.scaleType == "fixed"){
+
+            var minPoint = points[0];
+            var maxPoint = points[points.length - 1];
+
+            var yMin = 0;
+            var yMax = 100;
+
+            // V primeru inversa min in max točki obrne y vrednosti.
+            var isInverse = $.parseJSON(_self.criterion.inverseScale);
+            if(isInverse == true){
+                yMin = 100;
+                yMax = 0;
+            }
+
+            if(minPoint.x > _self.min){
+                points.unshift({
+                    x: _self.min,
+                    y: yMin
+                });
+            }
+            if(maxPoint.x < _self.max){
+                points.push({
+                    x: _self.max,
+                    y: yMax
+                });
+            }
+        }
+
+        return points;
+    }
+
+    FVDidalogValueFunctionLinear.prototype.drawGraph = function(){
+        var _self = this;
            
-            // Točke je potrebno kopirati (sicer so referencirane in se tudi ob Close "shrani" trenutna pozicija.
+        // Točke je potrebno kopirati (sicer so referencirane in se tudi ob Close "shrani" trenutna pozicija.
+        _self.chart = new Highcharts.Chart({
+            chart: {
+                renderTo: 'graphValFuncLinear',
+                animation: false,
+            },
+            title: {
+                text: ''
+            },
+            xAxis: {
+                min: _self.min,
+                max: _self.max,
+                startOnTick: true,
+                endOnTick: true,
+                title:{
+                    text: _self.xAxisLabel
+                },
+            },
+            yAxis:{
+                max: 100,
+                min: 0,
+                title:{
+                    text:'Preferenčna vrednost'
+                },
+            },
+            plotOptions: {
+                column: {
+                    stacking: 'normal'
+                },
+                line: {
+                    cursor: 'ns-resize',
+                    turboThreshold: 2000,
+                },
+                dataGrouping: false
+            },
+            tooltip: {
+                enabled: true,
+                useHTML:true,
+                valueDecimals: 2,
+                formatter: function(el, neki){
+                    var _self2 = this;
+                    // Metoda formatira tooltip, ki se prikaže nad piko v grafu.
 
-            _self.chart = new Highcharts.Chart({
-                chart: {
-                    renderTo: 'graphValFuncLinear',
-                    animation: false,
-                },
-                title: {
-                    text: ''
-                },
-                xAxis: {
-                    min: _self.min,
-                    max: _self.max,
-                    startOnTick: true,
-                    endOnTick: true,
-                    title:{
-                        text: _self.xAxisLabel
-                    },
-                },
-                yAxis:{
-                    max: 100,
-                    min: 0,
-                    title:{
-                        text:'Preferenčna vrednost'
-                    },
-                },
-                plotOptions: {
-                    column: {
-                        stacking: 'normal'
-                    },
-                    line: {
-                        cursor: 'ns-resize',
-                        turboThreshold: 2000,
-                    },
-                    dataGrouping: false
-                },
-                tooltip: {
-                    enabled: true,
-                    useHTML:true,
-                    valueDecimals: 2,
-                    formatter: function(el, neki){
-                        var _self2 = this;
-                        // Metoda formatira tooltip, ki se prikaže nad piko v grafu.
+                    var optionsList = "";
+                    _self.pointsObjects.forEach(function(el){
+                        if(el.val == _self2.x){
+                            optionsList += "</br>&nbsp;&nbsp;" + el.variantNames.join("</br>&nbsp;&nbsp;");
+                        }
 
-                        var optionsList = "";
-                        _self.pointsObjects.forEach(function(el){
-                            if(el.val == _self2.x){
-                                optionsList += "</br>&nbsp;&nbsp;" + el.variantNames.join("</br>&nbsp;&nbsp;");
-                            }
+                    });
+                    return '<b>Preferenčna vrednost:</b> ' + _self2.y.myToFixed(2) +
+                            '</br><b>Vrednost variante:</b> ' +   _self2.x.myToFixed(2) +
+                            '</br> <b>Variante:</b> ' + optionsList;
+                }
+            },
+            series: [{
+                data: _self.points,
+                draggableY: false,
+                draggableX: false,
+                showInLegend: false,
+                dataGrouping: false
+            }]
+        });
 
-                        });
-                        return '<b>Preferenčna vrednost:</b> ' + _self2.y.toFixed(2) +
-                                '</br><b>Vrednost variante:</b> ' +  _self2.x.toFixed(2) +
-                                '</br> <b>Variante:</b> ' + optionsList;
-                    }
-                },
-                series: [{
-                    data: _self.points,
-                    draggableY: false,
-                    draggableX: false,
-                    showInLegend: false,
-                    dataGrouping: false
-                }]
+        // Skrivanje Highcharts.com napisa v spodnjem desnem kotu grafa...
+        $('text:contains("Highcharts.com")').remove();
+    }
+
+    FVDidalogValueFunctionLinear.prototype.validateBeforeOpen = function(){
+        // Metoda preveri ali je model velaven za odprtje dialoga Linear.
+        var _self = this;
+
+        var variants = model.getVariants();
+        var variantKeys = Object.keys(variants);
+
+        if(variantKeys.length == 0){
+            $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
+                height: 180,
+                onlyYes: true,
+                headerText: 'Opozorilo!',
+                contentText: "Dialoga ni možno odpreti. Prvo je potrebno vnesti variante, da se pridobi min in max vrednost.",
+                yesAction: function(){
+                    // Fukcija proži brisanje kategorije.
+
+                    $(event.target).closest('.categoryDiv').remove();
+
+                    // var catName = $(event.target).closest('.categoryDiv').find('.categoryNameText span').html();
+                    // _self._removeCategory(catName);
+                }
             });
 
-            // Skrivanje Highcharts.com napisa v spodnjem desnem kotu grafa...
-            $('text:contains("Highcharts.com")').remove();
-        },
+            return false;
+        }
 
-        _validateBeforeOpen: function(){
-            // Metoda preveri ali je model velaven za odprtje dialoga Linear.
-            var _self = this;
+        for(var i=0; i < variantKeys.length; i++){
 
-            var variants = model.getVariants();
-            var variantKeys = Object.keys(variants);
+            var variant = variants[i];
+            var value = variant[_self.criterion.name];
 
-            if(variantKeys.length == 0){
+            if( ! $.isNumeric(value)){
                 $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
                     height: 180,
                     onlyYes: true,
                     headerText: 'Opozorilo!',
-                    contentText: "Dialoga ni možno odpreti. Prvo je potrebno vnesti variante, da se pridobi min in max vrednost.",
+                    contentText: "Dialoga ni možno odpreti. Variante za podan kriterij nimajo vnešenih samo številskih vrednosti.",
                     yesAction: function(){
                         // Fukcija proži brisanje kategorije.
 
@@ -2667,681 +2798,870 @@ function ValueTree(){
 
                 return false;
             }
-
-            for(var i=0; i < variantKeys.length; i++){
-
-                var variant = variants[i];
-                var value = variant[_self.criterion.name];
-
-                if( ! $.isNumeric(value)){
-                    $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                        height: 180,
-                        onlyYes: true,
-                        headerText: 'Opozorilo!',
-                        contentText: "Dialoga ni možno odpreti. Variante za podan kriterij nimajo vnešenih samo številskih vrednosti.",
-                        yesAction: function(){
-                            // Fukcija proži brisanje kategorije.
-
-                            $(event.target).closest('.categoryDiv').remove();
-
-                            // var catName = $(event.target).closest('.categoryDiv').find('.categoryNameText span').html();
-                            // _self._removeCategory(catName);
-                        }
-                    });
-
-                    return false;
-                }
-            }
-
-            return true;
         }
 
-    });
-})(jQuery);
+        return true;
+    }
 
 
-//////////////////////////////////
-//////    DIALOG VAL. FUNC. DISCRETE
-//////////////////////////////////
+    //////////////////////////////////
+    //////    DIALOG VAL. FUNC. DISCRETE
+    //////////////////////////////////
 
-(function( $ ){
-
-    $.widget('myWidget.DialogDiscrete', {
-
-        options: {
+    function FVDialogValueFunctionDiscrete(selector){
+        
+        var windowOptions = {
             width: 480,
             height: 450,
-            criterion: {}
-        },
+        };
 
-        min: 0,
-        max: 100,
+        FVDialogWindow.call(this, selector, windowOptions);
 
-        _create: function(){
-            var _self = this;
+        this.criterion = {};
 
-            _self.dialogID =  "#" + $(this.element).prop('id');
+        this.URManager = new UMG(this.getStateOfWindow, this.setStateOfWindow, 100, false, this);
+    }
+    FVDialogValueFunctionDiscrete.prototype = Object.create(FVDialogWindow.prototype);
+    FVDialogValueFunctionDiscrete.prototype.constructor = FVDialogValueFunctionDiscrete;
 
-            $('#dialogValFuncDiscrete').jqxWindow({
-                height: _self.options.height,
-                width: _self.options.width,
-                resizable: true,
-                isModal: true,
-                autoOpen: false,
-                draggable: true,
-                position: 'center',
-                initContent: function(){
+    FVDialogValueFunctionDiscrete.prototype.initDialogContent = function(){
+        var _self = this;
 
-                    $('#btnAddAllExistingCategories').jqxButton({height: 16, width: 16});
-                    $('#btnAddAllExistingCategories').jqxTooltip({content: "Dodaj vse obstoječe kategorije (iz vrednosti variant)", animationShowDelay: 1000});
-                    $('#btnAddAllExistingCategories').on('click', function(event){
+        $('#cobCategoryName').jqxComboBox({
+            height: 19,
+            width: 300,
+        });
 
-                        _self._addAllCategoriesFromComboBox();
-                    });
+        $('#btnAddAllExistingCategories').jqxButton({height: 16, width: 16});
+        $('#btnAddAllExistingCategories').jqxTooltip({content: "Dodaj vse obstoječe kategorije (iz vrednosti variant)", animationShowDelay: 1000});
+        $('#btnAddAllExistingCategories').on('click', function(event){
 
-                    $('#btnSortCategoryAsc').jqxButton({height: 16});
-                    $('#btnSortCategoryAsc').jqxTooltip({content: "Sortiraj po vrednosti naraščujoče", animationShowDelay: 1000});
-                    $('#btnSortCategoryAsc').on('click', function(event){
-                        var fakeCriterion = _self.getSortedCategories();
-                        _self.setSliders(fakeCriterion);
-                    });
+            _self._addAllCategoriesFromComboBox();
 
-                    $('#btnSortCategoryDesc').jqxButton({height: 16});
-                    $('#btnSortCategoryDesc').jqxTooltip({content: "Sortiraj po vrednosti padajoče", animationShowDelay: 1000});
-                    $('#btnSortCategoryDesc').on('click', function(event){
-                        var fakeCriterion = _self.getSortedCategories(-1);
-                        _self.setSliders(fakeCriterion);
-                    });
+            _self.URManager.saveState();
+        });
 
-                    $('#btnClearAllCategories').jqxButton({height: 16});
-                    $('#btnClearAllCategories').jqxTooltip({content: "Odstrani vse kategorije", animationShowDelay: 1000});
-                    $('#btnClearAllCategories').on('click', function(event){
-                        
-                        $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                            contentText: "Ali res želite odstraniti vse kategorije?",
-                            yesAction: function(){
-                                $('#categorySlidersPanel .categoryDiv').remove();
-                            }
-                        });
+        $('#btnSortCategoryAsc').jqxButton({height: 16});
+        $('#btnSortCategoryAsc').jqxTooltip({content: "Sortiraj po vrednosti naraščujoče", animationShowDelay: 1000});
+        $('#btnSortCategoryAsc').on('click', function(event){
+            // var fakeCriterion = _self.getSortedCategories();
+            // _self.setSliders(fakeCriterion);
 
-                    });
+            _self.sortCategories();
 
-                    $('#btnPopUpMACBETH').jqxButton({height: 24});
-                    $('#btnPopUpMACBETH').on('click', function(event){
+            _self.URManager.saveState();
+        });
 
-                        _self.popupMACBETHDialog();
+        $('#btnSortCategoryDesc').jqxButton({height: 16});
+        $('#btnSortCategoryDesc').jqxTooltip({content: "Sortiraj po vrednosti padajoče", animationShowDelay: 1000});
+        $('#btnSortCategoryDesc').on('click', function(event){
+            // var fakeCriterion = _self.sortCategories(-1);
+            // _self.setSliders(fakeCriterion);
 
-                        try{
+            _self.sortCategories(-1);
 
-                            $('#MACBETHgrid').MCGrid('refreshInconsistentCells');
-                        }
-                        catch(ex){
-                        }
-                    });
+            _self.URManager.saveState();
+        });
 
-                    $('#btnSaveDiscrete').jqxButton({width:55});
-                    $('#btnSaveDiscrete').on('click', function(){      
-                        _self._saveDataToCriterion();
-
-                        $('#dialogValFuncDiscrete').jqxWindow('close');
-                    });
-
-                    $('#btnCloseDiscrete').jqxButton({width:55});
-                    $('#btnCloseDiscrete').on('click', function(){
-                         $('#dialogValFuncDiscrete').jqxWindow('close');
-                    });
-                    
-                    $('#btnAddCategory').jqxButton({width: 125});
-                    $('#btnAddCategory').on('click', function(){                                             
-                        
-                        $('#formValFuncDiscrete').jqxValidator('validate');
-
-                    });
-
-                    $('#formValFuncDiscrete').jqxValidator({
-                        rules: [
-                            {input: '#cobCategoryName', message: 'Prosimo vnesite ime kategorije.', action: 'change', rule: function(event){
-                                // Simulira required validator, ker combo box in <input> elemtn....
-
-                                var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
-                                return newCategoryName.trim() != "";
-                            }},
-                            {input: '#cobCategoryName', message: 'Kategorija z podanim imenom že obstaja.', action: 'keyup', rule: function(event){
-                                // var newCategoryName = $('#tfCategoryName').val();
-                                var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
-                                var categories = $('.categoryNameText span');
-                                var valid = true;
-                                categories.each(function(){
-                                    if($(this).html() == newCategoryName){
-                                        valid = false;
-                                        return;
-                                    }
-                                });
-                                // var valid = categories.index('<td>' + newCategoryName + '</td>') == -1
-                                return valid;
-                            }},
-                            {input: '#cobCategoryName', message: 'Vnešeno ime: "min" je rezervirano. Prosimo vnesite drugo ime.', action: 'change', rule: function(event){
-                                // Simulira required validator, ker combo box in <input> elemtn....
-
-                                var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
-                                return newCategoryName.trim() != "min";
-                            }},
-                            {input: '#cobCategoryName', message: 'Vnešeno ime: "max" je rezervirano. Prosimo vnesite drugo ime.', action: 'change', rule: function(event){
-                                // Simulira required validator, ker combo box in <input> elemtn....
-
-                                var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
-                                return newCategoryName.trim() != "max";
-                            }},
-                        ]
-                    });
-
-                    $('#formValFuncDiscrete').on('validationSuccess', function(event){
-
-                        var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
-                        $('#cobCategoryName').jqxComboBox('val', '');
-
-                        _self._addCategoryToPanel(newCategoryName);
-                        _self._refreshComboBoxNames();
-                    });
-                }
-            });
-
-            $('#cobCategoryName').jqxComboBox({
-                height: 19,
-                width: 300,
-            });
-        },
-
-        open: function(criterion){
-            // Metoda odpre dialog za kreiranje/spreminjanje vozlišča.
-            // Če ima podano vozlišče je način odprtja Modification (M), sicer Creation (C).
-            var _self = this;
-
-            this.options.criterion = criterion;
-
-            // Pozor: open se MORA zgoditi pred refreshDialogom, sicer se sliderji ne posodavljajo in jih ne obarva.... 
-            // (jqxSlider očitno deluje, da če je v trenutku nastavljanja invisible, da ne refresha)
-            $(_self.dialogID).jqxWindow('open');
-
-            this._refreshDialog();
-        },
-
-        close: function(){
-
-            this._resetDialog();
-            $('#dialogValFuncPiecewise').jqxWindow('close');
-        },
-
-        _resetDialog: function(){
-            var _self = this;
-
-            $(_self.dialogID).jqxWindow({        
-                position: {
-                    x: ($(document).width() / 2) - (_self.options.width / 2),
-                    y: (($(window).height()/2) - (_self.options.height / 2) + $(document).scrollTop())
-                }
-            });
-        },
-
-        _refreshDialog: function(){
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno nastavljene v modelu.
-            var _self = this;
-
-            if(!_self.options.criterion.valueFunction){
-                _self.resetSliders(this.options.criterion);
-            }
-            else{
-                _self.setSliders(this.options.criterion);
-            }
-
-            _self._refreshControls();
-
-            _self._disableAllBoundedSliders();
-        },
-
-        _refreshControls: function(){
-            var _self = this;
-            // Metoda nastavi kontrole glede na vrednosti, ki so trenutno vnešene v kontrolah.
-
-            // Nastavi vrednosti v combo boxu -> vse obstoječe vrednosti razen dodanih.
-           _self._refreshComboBoxNames();
-        },
-    
-        _refreshComboBoxNames: function(){
-            var _self = this;
-            //Metoda osveži combo box za dodajanje kategorij.
-
-            var addedCategories = Object.keys(_self.getCatogories());
-            var unaddedCategories = [];
-
-            var values = model.getAllValuesOfCategory(_self.options.criterion.name);
-            values.forEach(function(el){
-                if(addedCategories.indexOf(el) == -1){
-                    unaddedCategories.push(el);
-                }
-            });
-
-            $('#cobCategoryName').jqxComboBox('source', unaddedCategories);
-        },
-
-        getCatogories: function(){
-            // Metoda vrne kategorije, ki se nahjajo na GUI-ju. 
-            // Vrne objekt v obliki {imekateg1: vrednostKat1, ....}
-
-            var categories = {};
+        $('#btnClearAllCategories').jqxButton({height: 16});
+        $('#btnClearAllCategories').jqxTooltip({content: "Odstrani vse kategorije", animationShowDelay: 1000});
+        $('#btnClearAllCategories').on('click', function(event){
             
-            var sliders = $('.categorySliders');
-            var valuesText = $('.categoryNameText span');
-            
-            for(var i=0; i < valuesText.length; i += 1){
-                var categoryName = $(valuesText[i]).html();
-                var slider = sliders[i];
-                var categoryValue = parseFloat($(slider).jqxSlider('value'));
-                categories[categoryName] = categoryValue;
-            }
+            $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
+                contentText: "Ali res želite odstraniti vse kategorije?",
+                yesAction: function(){
+                    $('#categorySlidersPanel .categoryDiv').remove();
 
-            return categories;
-        },
-
-        getSortedCategories: function(sortOrder){
-            var cats = [];
-            var names = $('#tableCategorySliders .categoryDiv .categoryNameText span');
-            var values = $('#tableCategorySliders .categoryDiv .categoryValueText');
-
-            for(var i = 0; i < names.length; i++){
-                var name = $(names[i]).html();
-                var value = $(values[i]).html();
-                cats.push([name, value]);
-            }
-
-            sortOrder = typeof(sortOrder) === 'undefined' ? 1 : sortOrder;
-            cats.sort(function(a, b){
-                var result = a[1] - b[1]
-                return result * sortOrder;
+                    _self.URManager.saveState();
+                }
             });
 
-            var fakeCriterion = {valueFunction: {categories : {}}};
-            for(var i = 0; i < cats.length; i++){
-                var name = cats[i][0];
-                var value = cats[i][1];
-                fakeCriterion.valueFunction.categories[name] = value;
+        });
+
+        $('#btnPopUpMACBETH').jqxButton({height: 24});
+        $('#btnPopUpMACBETH').on('click', function(event){
+
+            _self.popupMACBETHDialog();
+
+            try{
+                $('#MACBETHgrid').MCGrid('refreshInconsistentCells');
             }
-
-            return fakeCriterion;
-        },
-
-        resetSliders: function(criterion){
-            var _self = this;
-
-            var sliders = $('.categorySliders');
-            for(var i=0; i < sliders.length; i++){
-                
-                var slider = $(sliders[i]).jqxSlider('destroy');
-
+            catch(ex){
             }
+        });
 
-            $('#tableCategorySliders').html('');
-            $('#tfCategoryName').val('');
-            this.min = parseFloat(criterion.minValue);
-            this.max = parseFloat(criterion.maxValue);
-        },
-
-        setSliders: function(criterion){
-            var _self = this;
-
-            // Resetiranje panela diskretne funkcije.
-            this.resetSliders(criterion);
-
-            // 
-            if(typeof(criterion.valueFunction.categories) == 'undefined')
-            {
-                criterion.valueFunction.categories = {}
-            }
-            
-            var categoryKeys = Object.keys(criterion.valueFunction.categories);
-            for(var i = 0; i < categoryKeys.length; i++){
-                var categoryName = categoryKeys[i];
-                var categoryValue = criterion.valueFunction.categories[categoryName];
-                this._addCategoryToPanel(categoryName);
-            }
-
-            var categorySliders = $('.categorySliders');
-
-            // Vsakemu slider-ju nastavi vrednost kategorije.
-            for(var i = 0; i < categorySliders.length; i++){
-                var slider = categorySliders[i];
-                var categoryName = categoryKeys[i];
-                var categoryValue = criterion.valueFunction.categories[categoryName];
-
-                $(slider).jqxSlider('setValue', categoryValue);
-            }
-        },
-
-        _addCategoryToPanel: function(newCategoryName){
-            var _self = this;
-
-            // Se znebi presledkov.
-            var newSliderID = 'slider' + $('#tableCategorySliders .categoryDiv').length; // newCategoryName.split(" ").join("_");
-
-            var newCategoryDiv = $('<div class="categoryDiv">' + 
-                                '<div class="categoryDelete celle"><div class="categoryImageDiv"><img src="./images/imgRemoveSelected16.png"/></div></div>' +
-                                '<div class="categoryName celle"><div class="categoryNameText"><span>' + newCategoryName + '</span></div></div>' + 
-                                '<div class=" categorySliderDiv celle"><div id="' + newSliderID + '"class="categorySliders" categoryName="' + newCategoryName + '"></div></div>' + 
-                                '<div class="categoryValueText celle">0</div>' + 
-                                '</div>');
-
-            $('#tableCategorySliders').append(newCategoryDiv);
-
-            var newSliderSelector = '#' + newSliderID;
-
-            $(newSliderSelector).jqxSlider({
-                orientation: 'horizontal',
-                width: 250,
-                height: 25,
-                min: 0,
-                max: 100,
-                showTicks: false,
-                tickSize: 1,
-                value: 0,
-                step: 0.01,
-            });
-
-            $(newSliderSelector).on('change', function(event){
-                // Ta event ob spremembi na desni strani sliderja izpiše njegovo vrednost.
-
-                var insertedValue = $(event.currentTarget).jqxSlider('val');
-                if(typeof(insertedValue) == 'undefined'){
-                    return;
-                }
-
-                var textDiv = $(event.target.parentNode.parentNode).find('.categoryValueText');
-
-                // Ali je spremenjen programsko z itntervalom ali pa ga je spremenil uporabnik
-                var val;
-                if(insertedValue.hasOwnProperty("interval")){
-                    val = event.target.value;
-                }else{
-                    val = parseFloat(insertedValue).toFixed(2);
-                }
-
-                textDiv.html(val);
-            });
-
-            $(newSliderSelector).on('change', function(event){
-                // Ta event ob spremembi sliderja v primeru uporabe MACBETH-a poskrbi, da slider ne izstopi iz vrednosti intervala, ki mu je dodeljen.
-
-                var catName = $(event.target).closest('.categoryDiv').find('.categoryName .categoryNameText span').html();
-
-                if(!_self.options.criterion.valueFunction.usingMACBETH || ! _self._categoryIsUsedInMacbeth(catName)){
-                    return;
-                }
-
-                var catInterval = _self.options.criterion.valueFunction.MACBETHIntervals[catName];
-                if($(event.target).val() > catInterval.interval.upperBound){
-                    $(this).jqxSlider('setValue', catInterval.interval.upperBound);
-                }
-                else if($(event.target).val() < catInterval.interval.lowerBound){
-                    $(this).jqxSlider('setValue', catInterval.interval.lowerBound);
-                }
-
-            });
-
-            // Kadar kriterij uporablja MACBETH se ob spremembi spremenijo intervali.
-            $(newSliderSelector).on('slideEnd', function (event) { 
-
-                var movedCategoryName = $(event.target).attr('categoryName');
-
-                _self._recalculateIntervals(movedCategoryName);
-            }); 
-            // Event za spremembo intervalov je potreben tudi kadar se slider spreminja z pomočjo gumbov ob levi in desni.
-            $(newCategoryDiv).find('.jqx-icon-arrow-right').on('click', function(){
-
-                _self._recalculateIntervals();
-            });
-            $(newCategoryDiv).find('.jqx-icon-arrow-left').on('click', function(){
-
-                _self._recalculateIntervals();
-            });
-
-            // Poskrbi za prikaz tooltipa z intervalom kadar se uporablja macbeth.
-            $(newCategoryDiv).hover(
-                function(event){
-                    // Kadar z miško stopimo nad div kategorije prikaže tooltip.
-
-                    // Tooltip se prikaže samo ob uporabi MACBETHA.
-                    if(!_self.options.criterion.valueFunction.usingMACBETH){
-                        return;
-                    }
-
-                    var categoriesNames = Object.keys(_self.options.criterion.valueFunction.MACBETHIntervals);
-
-                    var categoryDiv = $(event.currentTarget);
-                    var slider = categoryDiv.find('.categorySliders');
-                    var categoryName = slider.attr('categoryName');
-
-                    // Če kategorija še ne obstaja pomeni, da je bila ravno dodana (oz. je bila dodana in še ne uporabljena v  MACBETHU) in tudi v tem primeru se tooltip ne prikaže.
-                    if(categoriesNames.indexOf(categoryName) == -1){
-                        return;
-                    }
-
-                    var interval = _self.options.criterion.valueFunction.MACBETHIntervals[categoryName].interval;
-
-                    var leftOffset = categoryDiv.width() / 2;
-                    $('#macbethIntervalTooltip').tooltipMACBETHInterval('setValues', interval.lowerBound, interval.upperBound);
-                    $('#macbethIntervalTooltip').tooltipMACBETHInterval('showAt', categoryDiv.offset(), leftOffset);
-                }, 
-                function(event){ 
-                    // Kadar z miško stopimo izven div kategorije skrije tooltip.
-
-                    // To seveda naredi če kriterij uporablja macbeth in če je trenutno viden tooltip.
-                    if(!_self.options.criterion.valueFunction.usingMACBETH || ! $('#macbethIntervalTooltip').tooltipMACBETHInterval('isVisible')){
-                        return;
-                    }
-
-                    $('#macbethIntervalTooltip').tooltipMACBETHInterval('hide');
-                }
-            );
-            
-            // Če se uporablja MACBETH in je dodana nova kategorija jo obarva rdečkasto.
-            if(_self.options.criterion.valueFunction.usingMACBETH){
-                var macbethCats = Object.keys(_self.options.criterion.valueFunction.MACBETHDifferenceMatrix);
-                if(macbethCats.indexOf(newCategoryName) == -1){
-                    $(newCategoryDiv).addClass('categorySliderDivUnusedInMacbeth');
-                }
-            }
-            
-            $('.categoryImageDiv img:last').on('click', function(event){
-                
-                $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
-                    headerText: 'Opozorilo!',
-                    contentText: 'Ali res želite odstraniti kategorijo?',
-                    yesAction: function(){
-                        // Fukcija proži brisanje kategorije.
-
-                        $(event.target).closest('.categoryDiv').remove();
-                    }
-                });
-            });
-        },
-
-        _addAllCategoriesFromComboBox: function(){
-            // Metoda doda vse kategorije iz kombo boxa (torej tiste ki obstajajo v variantah) na panel oz. v kriterij.
-            var _self = this;
-
-            var allUnaded = $('#cobCategoryName').jqxComboBox('source');
-
-            allUnaded.forEach(function(el){
-                _self._addCategoryToPanel(el);
-            });
-        },
-
-        _saveDataToCriterion: function(){
-            var _self = this;
-
-            var categories = _self.getCatogories();
-            this.options.criterion.valueFunction.categories = categories;
-        },
-
-        _setValueOfSlidersOnValueOfIntervals: function(){
-            // Metoda nastavi vrednost sliderjem na vrednosti, ki se nahajajao v criterion.valueFunction.MACBETHIntervals.value...
-            var _self = this;
-
-            var sliders = $('.categorySliders');
-            for(var i=0; i < sliders.length; i++){
-
-                var slider = $(sliders[i]);
-                var categoryName = slider.attr('categoryName');
-
-                if(!_self._categoryIsUsedInMacbeth(categoryName)){
-                    continue;
-                }
-
-                var value = _self.options.criterion.valueFunction.MACBETHIntervals[categoryName].value;
-
-                var sliderSelector = '#' + slider.attr('id');
-                $(sliderSelector).jqxSlider('setValue', value);
-            }
-        },
-
-        _categoryIsAlreadyAddedToModel: function(categoryName){
-            // Metoda vrne true, če je kategorije še dodana v model ali je dodana samo kot slider na panel.
-            var _self = this;
-
-            var catNames = Object.keys(_self.options.criterion.valueFunction.categories);
-
-            return catNames.indexOf(categoryName) > -1;
-        },
-
-        _getTooltipIntervalForValue: function(value){
-
-            var intervals = this.options.criterion.valueFunction.MACBETHIntervals;
-
-            var catKeys = Object.keys(intervals);
-            var intervalOfValue;
-
-            for(var i=0; i < catKeys.length; i++){
-
-                var interval = intervals[catKeys[i]];
-
-                if(interval.interval.upperBound >= value  && interval.interval.lowerBound <= value){
-                    intervalOfValue = interval.interval;
-                    break;
-                }
-            }
-
-            return intervalOfValue.lowerBound + " - " + intervalOfValue.upperBound
-
-        },
-
-        _getMACBETHScaleFromSliders: function(){
-            // Iz vrednosti, ki so trenuto v sliderju sestavi MACBETHscale, ki je primeren za ponovni izračun intervalov.
-            // Vrnjeni scale ne sme vsebovati kategorij, ki so bile dodane na panel, niso pa bile uporabljene v MACBETHU!
-            var _self = this;
-
-            var scale = [];
-            var sliders = $('.categorySliders');
-
-            var macbethCategories = Object.keys(_self.options.criterion.valueFunction.MACBETHDifferenceMatrix);
-            for(var i=0; i < sliders.length; i++){
-                
-                var slider = $(sliders[i]);
-
-                var categoryName = slider.attr('categoryName');
-                if(macbethCategories.indexOf(categoryName) == -1 ){
-                    continue;
-                }
-
-                scale.push({
-                    name: categoryName,
-                    value: slider.jqxSlider('val')
-                });
-            }
-            
-            return scale;
-        },
-
-        _recalculateIntervals: function(movedCategoryName){
-            // Preračuna intervale, glede na trenutno nastavljene sliderje in jih nastavi.
-            var _self = this;
-
-            if(!_self.options.criterion.valueFunction.usingMACBETH){
-                return;
-            }
-
-            var categoryName = $(event.currentTarget).attr('categoryName');
-            var scale =_self._getMACBETHScaleFromSliders();
-            var differenceMatrix = _self.options.criterion.valueFunction.MACBETHDifferenceMatrix;
-
-            var intervals = MacbethIntervalCalculator.calculateIntervalsFor(scale, differenceMatrix, movedCategoryName);
-
-            _self.options.criterion.valueFunction.MACBETHIntervals = intervals;
-            _self._setValueOfSlidersOnValueOfIntervals();
-
-            _self._disableAllBoundedSliders();
-        },
-
-        _disableAllBoundedSliders: function(){
-            // Metoda onemogoči vse sliderje, katerih interval ima enako vrednosti upper in lower bound-a.
-            var _self = this;
-
-            var sliders = $('.categorySliders');
-            for(var i = 0; i < sliders.length; i++){
-                var slider = $(sliders[i]);
-
-                var catName = slider.attr('categoryName');
-
-                slider.jqxSlider('enable');
-
-                var interval = _self.options.criterion.valueFunction.MACBETHIntervals[catName];
-                if(typeof(interval) === 'undefined'){
-                    continue;
-                }
-
-                if(interval.interval.upperBound == interval.interval.lowerBound){
-                    slider.jqxSlider('disable');
-                }
-
-            }
-        },
-
-        _categoryIsUsedInMacbeth: function(categoryName){
-            // Metoda vrne boolean vrednost, ki pove ali je bila kategorija že uporabljena v MACBETHU.
-            // Kategorija je bila uporabljena v MACBETHU če ima kriterij podatek o njenem intervalu.
-            var _self = this;
-
-            if(!_self.options.criterion.valueFunction.usingMACBETH){
-                return false;
-            }
-
-            var macbethCategories = Object.keys(_self.options.criterion.valueFunction.MACBETHDifferenceMatrix);
-
-            return macbethCategories.indexOf(categoryName) > -1;
-        }, 
-
-        popupMACBETHDialog: function(){
-            // Funkcija prikaže MACBETH dialog. Ob prikazu se shranijo tudi vse trenutno vnešena kategorije. (zaradi konsistentnosti z MACBETH podatki)
-            var _self = this;
-
-            if(typeof(this.options.criterion) == 'undefined'){
-                return;
-            }
-
+        $('#btnSaveDiscrete').jqxButton({width:55});
+        $('#btnSaveDiscrete').on('click', function(){      
             _self._saveDataToCriterion();
 
-            $('#dialogMACBETH').DialogMACBETHH({
-                onClose: function(){
-                    _self._setValueOfSlidersOnValueOfIntervals();
+            window.valueTree.URManager.setAsCurrentUMG();
+            
+            _self.close();
+        });
 
-                    // Vsem kategorijam, ki so bile neuporabljene v MACBETHU (in so bile obarvane rdeče) sedaj odstran barvo...
-                    $('.categorySliderDivUnusedInMacbeth').removeClass('categorySliderDivUnusedInMacbeth');
+        $('#btnCloseDiscrete').jqxButton({width:55});
+        $('#btnCloseDiscrete').on('click', function(){
 
-                    _self._disableAllBoundedSliders();
+            window.valueTree.URManager.setAsCurrentUMG();
+
+            _self.close();
+        });
+        
+        $('#btnAddCategory').jqxButton({width: 125});
+        $('#btnAddCategory').on('click', function(){                                             
+            
+            $('#formValFuncDiscrete').jqxValidator('validate');
+        });
+
+        $('#formValFuncDiscrete').jqxValidator({
+            rules: [
+                {input: '#cobCategoryName', message: 'Prosimo vnesite ime kategorije.', action: 'change', rule: function(event){
+                    // Simulira required validator, ker combo box in <input> elemtn....
+
+                    var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
+                    return newCategoryName.trim() != "";
+                }},
+                {input: '#cobCategoryName', message: 'Kategorija z podanim imenom že obstaja.', action: 'keyup', rule: function(event){
+                    // var newCategoryName = $('#tfCategoryName').val();
+                    var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
+                    var categories = $('.categoryNameText span');
+                    var valid = true;
+                    categories.each(function(){
+                        if($(this).html() == newCategoryName){
+                            valid = false;
+                            return;
+                        }
+                    });
+                    // var valid = categories.index('<td>' + newCategoryName + '</td>') == -1
+                    return valid;
+                }},
+                {input: '#cobCategoryName', message: 'Vnešeno ime: "min" je rezervirano. Prosimo vnesite drugo ime.', action: 'change', rule: function(event){
+                    // Simulira required validator, ker combo box in <input> elemtn....
+
+                    var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
+                    return newCategoryName.trim() != "min";
+                }},
+                {input: '#cobCategoryName', message: 'Vnešeno ime: "max" je rezervirano. Prosimo vnesite drugo ime.', action: 'change', rule: function(event){
+                    // Simulira required validator, ker combo box in <input> elemtn....
+
+                    var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
+                    return newCategoryName.trim() != "max";
+                }},
+            ]
+        });
+
+        $('#formValFuncDiscrete').on('validationSuccess', function(event){
+
+            var newCategoryName = $('#cobCategoryName').jqxComboBox('val');
+            $('#cobCategoryName').jqxComboBox('val', '');
+
+            _self._addCategoryToPanel(newCategoryName, _self.criterion.valueFunction);
+            _self._refreshComboBoxNames();
+
+            _self.URManager.saveState();
+        });
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.setDialogContent = function(criterion){
+        // Metoda nastavi kontrole glede na vrednosti, ki so trenutno nastavljene v modelu.
+        var _self = this;
+
+        _self.setSliders(criterion);
+
+        _self._refreshComboBoxNames();
+
+        _self._disableAllBoundedSliders();
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.resetDialogContent = function(){
+        var _self = this;
+
+        _self.resetSliders();
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.open = function(criterion){
+        var _self = this;
+
+        _self.criterion = criterion;
+
+        // Pozor: open se MORA zgoditi pred refreshDialogom, sicer se sliderji ne posodabljajo in jih ne obarva.... 
+        // (jqxSlider očitno deluje, da če je v trenutku nastavljanja invisible, da ne refresha prikaza)
+        $(_self.selector).jqxWindow('open');
+
+        _self.setDialogContent(criterion);
+
+        _self.URManager.setAsCurrentUMG();
+        _self.URManager.saveState();
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.resetSliders = function(criterion){
+        var _self = this;
+
+        var sliders = $('.categorySliders');
+        for(var i=0; i < sliders.length; i++){
+            
+            var slider = $(sliders[i]).jqxSlider('destroy');
+
+        }
+
+        $('#tableCategorySliders').html('');
+        $('#tfCategoryName').val('');
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.setSliders = function(criterion){
+        var _self = this;
+
+        // Resetiranje panela diskretne funkcije.
+        _self.resetSliders(criterion);
+
+        // 
+        if(typeof(criterion.valueFunction.categories) == 'undefined')
+        {
+            criterion.valueFunction.categories = {}
+        }
+        
+        var categoryKeys = Object.keys(criterion.valueFunction.categories);
+        for(var i = 0; i < categoryKeys.length; i++){
+            var categoryName = categoryKeys[i];
+            var categoryValue = criterion.valueFunction.categories[categoryName];
+            _self._addCategoryToPanel(categoryName, criterion.valueFunction);
+        }
+
+        var categorySliders = $('.categorySliders');
+
+        // Vsakemu slider-ju nastavi vrednost kategorije.
+        for(var i = 0; i < categorySliders.length; i++){
+            var slider = categorySliders[i];
+            var categoryName = categoryKeys[i];
+            var categoryValue = criterion.valueFunction.categories[categoryName];
+
+            $(slider).jqxSlider('setValue', categoryValue);
+        }
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._refreshComboBoxNames = function(){
+        var _self = this;
+        //Metoda osveži combo box za dodajanje kategorij.
+
+        var addedCategories = Object.keys(_self.getCategoriesFromUi());
+        var unaddedCategories = [];
+
+        var values = model.getAllValuesOfCategory(_self.criterion.name);
+        values.forEach(function(el){
+            if(addedCategories.indexOf(el) == -1){
+                unaddedCategories.push(el);
+            }
+        });
+
+        $('#cobCategoryName').jqxComboBox('source', unaddedCategories);
+    }
+    
+    FVDialogValueFunctionDiscrete.prototype.sortCategories = function(direction){
+
+        if(typeof(direction) == 'undefined'){
+            direction = 1;
+        }
+
+        var elements = $('#tableCategorySliders .categoryDiv').detach();
+
+
+
+        var sorted = elements.toArray().sort(function(a, b){
+
+            var valA = parseFloat($(a).find('.categoryValueText').text());
+            var valB = parseFloat($(b).find('.categoryValueText').text());
+
+            return (valA - valB) * direction;
+        });
+
+        for(var i in sorted){
+            var element = $(sorted[i]);
+            $('#tableCategorySliders').append(element);
+        }
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.getCategoriesFromUi = function(){
+        // Metoda vrne kategorije, ki se nahjajo na GUI-ju.
+        // Vrne objekt v obliki {imekateg1: vrednostKat1, ....}
+
+        var categories = {};
+        
+        var sliders = $('.categorySliders');
+        var valuesText = $('.categoryNameText span');
+        
+        for(var i=0; i < valuesText.length; i += 1){
+            var categoryName = $(valuesText[i]).html();
+            var slider = sliders[i];
+            var categoryValue = parseFloat($(slider).jqxSlider('value'));
+            categories[categoryName] = categoryValue;
+        }
+
+        return categories;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.getSortedCategories = function(sortOrder){
+        var cats = [];
+        var names = $('#tableCategorySliders .categoryDiv .categoryNameText span');
+        var values = $('#tableCategorySliders .categoryDiv .categoryValueText');
+
+        for(var i = 0; i < names.length; i++){
+            var name = $(names[i]).html();
+            var value = $(values[i]).html();
+            cats.push([name, value]);
+        }
+
+        sortOrder = typeof(sortOrder) === 'undefined' ? 1 : sortOrder;
+        cats.sort(function(a, b){
+            var result = a[1] - b[1]
+            return result * sortOrder;
+        });
+
+        var fakeCriterion = {valueFunction: {categories : {}}};
+        for(var i = 0; i < cats.length; i++){
+            var name = cats[i][0];
+            var value = cats[i][1];
+            fakeCriterion.valueFunction.categories[name] = value;
+        }
+
+        return fakeCriterion;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._addCategoryToPanel = function(newCategoryName, valueFunctionData){
+        var _self = this;
+
+        // Se znebi presledkov.
+        var newSliderID = 'slider' + $('#tableCategorySliders .categoryDiv').length; // newCategoryName.split(" ").join("_");
+
+        var newCategoryDiv = $('<div class="categoryDiv">' + 
+                            '<div class="categoryDelete celle"><div class="categoryImageDiv"><img src="./images/imgRemoveSelected16.png"/></div></div>' +
+                            '<div class="categoryName celle"><div class="categoryNameText"><span>' + newCategoryName + '</span></div></div>' + 
+                            '<div class=" categorySliderDiv celle"><div id="' + newSliderID + '"class="categorySliders" categoryName="' + newCategoryName + '"></div></div>' + 
+                            '<div class="categoryValueText celle">0</div>' + 
+                            '</div>');
+
+        $('#tableCategorySliders').append(newCategoryDiv);
+
+        var newSliderSelector = '#' + newSliderID;
+
+        $(newSliderSelector).jqxSlider({
+            orientation: 'horizontal',
+            width: 250,
+            height: 25,
+            min: 0,
+            max: 100,
+            showTicks: false,
+            tickSize: 1,
+            value: 0,
+            step: 0.01,
+        });
+
+        $(newSliderSelector).on('change', function(event){
+            // Ta event ob spremembi na desni strani sliderja izpiše njegovo vrednost.
+
+            var insertedValue = $(event.currentTarget).jqxSlider('val');
+            if(typeof(insertedValue) == 'undefined'){
+                return;
+            }
+
+            var textDiv = $(event.target.parentNode.parentNode).find('.categoryValueText');
+
+            // Ali je spremenjen programsko z itntervalom ali pa ga je spremenil uporabnik
+            var val;
+            if(insertedValue.hasOwnProperty("interval")){
+                val = event.target.value;
+            }else{
+                val = parseFloat(insertedValue).toFixed(2);
+            }
+
+            textDiv.html(val);
+        });
+
+        $(newSliderSelector).on('change', function(event){
+            // Ta event ob spremembi sliderja v primeru uporabe MACBETH-a poskrbi, da slider ne izstopi iz vrednosti intervala, ki mu je dodeljen.
+
+            var catName = $(event.target).closest('.categoryDiv').find('.categoryName .categoryNameText span').html();
+
+            if(!valueFunctionData.usingMACBETH || ! _self._categoryIsUsedInMacbeth(catName, valueFunctionData)){
+                return;
+            }
+
+            var catInterval = valueFunctionData.MACBETHIntervals[catName];
+            if($(event.target).val() > catInterval.interval.upperBound){
+                $(this).jqxSlider('setValue', catInterval.interval.upperBound);
+            }
+            else if($(event.target).val() < catInterval.interval.lowerBound){
+                $(this).jqxSlider('setValue', catInterval.interval.lowerBound);
+            }
+        });
+
+        // Kadar kriterij uporablja MACBETH se ob spremembi spremenijo intervali.
+        $(newSliderSelector).on('slideEnd', function (event) { 
+
+            var movedCategoryName = $(event.target).attr('categoryName');
+
+            _self._recalculateIntervals(movedCategoryName);
+
+            _self.URManager.saveState();
+        }); 
+        // Event za spremembo intervalov je potreben tudi kadar se slider spreminja z pomočjo gumbov ob levi in desni.
+        $(newCategoryDiv).find('.jqx-icon-arrow-right').on('click', function(e){
+
+            var movedCategoryName = $(this).parents('.categoryDiv').find('.categoryName').text();
+
+            _self._recalculateIntervals(movedCategoryName);
+        });
+        $(newCategoryDiv).find('.jqx-icon-arrow-right').mouseup(function(){
+            _self.URManager.saveState();
+        });
+        $(newCategoryDiv).find('.jqx-icon-arrow-left').on('click', function(e){
+            
+            var movedCategoryName = $(this).parents('.categoryDiv').find('.categoryName').text();
+            _self._recalculateIntervals(movedCategoryName);
+        });
+
+        // Poskrbi za prikaz tooltipa z intervalom kadar se uporablja macbeth.
+        $(newCategoryDiv).hover(
+            function(event){
+                // Kadar z miško stopimo nad div kategorije prikaže tooltip.
+
+                // Tooltip se prikaže samo ob uporabi MACBETHA.
+                if(!valueFunctionData.usingMACBETH){
+                    return;
+                }
+
+                var categoriesNames = Object.keys(valueFunctionData.MACBETHIntervals);
+
+                var categoryDiv = $(event.currentTarget);
+                var slider = categoryDiv.find('.categorySliders');
+                var categoryName = slider.attr('categoryName');
+
+                // Če kategorija še ne obstaja pomeni, da je bila ravno dodana (oz. je bila dodana in še ne uporabljena v  MACBETHU) in tudi v tem primeru se tooltip ne prikaže.
+                if(categoriesNames.indexOf(categoryName) == -1){
+                    return;
+                }
+
+                var interval = valueFunctionData.MACBETHIntervals[categoryName].interval;
+
+                var leftOffset = categoryDiv.width() / 2;
+                $('#macbethIntervalTooltip').tooltipMACBETHInterval('setValues', interval.lowerBound, interval.upperBound);
+                $('#macbethIntervalTooltip').tooltipMACBETHInterval('showAt', categoryDiv.offset(), leftOffset);
+            }, 
+            function(event){ 
+                // Kadar z miško stopimo izven div kategorije skrije tooltip.
+
+                // To seveda naredi če kriterij uporablja macbeth in če je trenutno viden tooltip.
+                if(!valueFunctionData.usingMACBETH || ! $('#macbethIntervalTooltip').tooltipMACBETHInterval('isVisible')){
+                    return;
+                }
+
+                $('#macbethIntervalTooltip').tooltipMACBETHInterval('hide');
+            }
+        );
+        
+        // Če se uporablja MACBETH in je dodana nova kategorija jo obarva rdečkasto.
+        if(valueFunctionData.usingMACBETH){
+            var macbethCats = Object.keys(valueFunctionData.MACBETHDifferenceMatrix);
+            if(macbethCats.indexOf(newCategoryName) == -1){
+                $(newCategoryDiv).addClass('categorySliderDivUnusedInMacbeth');
+            }
+        }
+        
+        $('.categoryImageDiv img:last').on('click', function(event){
+            
+            $('#dialogYesNoMessage').messageYesNoDialog('openWith',{
+                headerText: 'Opozorilo!',
+                contentText: 'Ali res želite odstraniti kategorijo?',
+                yesAction: function(){
+                    // Fukcija proži brisanje kategorije.
+
+                    $(event.target).closest('.categoryDiv').remove();
                 }
             });
-            $('#dialogMACBETH').DialogMACBETHH('open', this.options.criterion);
+        });
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._addAllCategoriesFromComboBox = function(){
+        // Metoda doda vse kategorije iz kombo boxa (torej tiste ki obstajajo v variantah) na panel oz. v kriterij.
+        var _self = this;
+
+        var allUnaded = $('#cobCategoryName').jqxComboBox('source');
+
+        allUnaded.forEach(function(el){
+            _self._addCategoryToPanel(el, _self.criterion.valueFunction);
+        });
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._saveDataToCriterion = function(){
+        var _self = this;
+
+        var categories = _self.getCategoriesFromUi();
+        _self.criterion.valueFunction.categories = categories;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._setValueOfSlidersOnValueOfIntervals = function(valueFunctionData){
+        // Metoda nastavi vrednost sliderjem na vrednosti, ki se nahajajao v criterion.valueFunction.MACBETHIntervals.value...
+        var _self = this;
+
+        var sliders = $('.categorySliders');
+        for(var i=0; i < sliders.length; i++){
+
+            var slider = $(sliders[i]);
+            var categoryName = slider.attr('categoryName');
+
+            if(!_self._categoryIsUsedInMacbeth(categoryName, valueFunctionData)){
+                continue;
+            }
+
+            var value = valueFunctionData.MACBETHIntervals[categoryName].value;
+
+            var sliderSelector = '#' + slider.attr('id');
+            $(sliderSelector).jqxSlider('setValue', value);
         }
-    });
-})(jQuery);
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._categoryIsAlreadyAddedToModel = function(categoryName){
+        // Metoda vrne true, če je kategorije še dodana v model ali je dodana samo kot slider na panel.
+        var _self = this;
+
+        var catNames = Object.keys(_self.criterion.valueFunction.categories);
+
+        return catNames.indexOf(categoryName) > -1;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._getTooltipIntervalForValue = function(value){
+        var _self = this;
+
+        var intervals = _self.criterion.valueFunction.MACBETHIntervals;
+
+        var catKeys = Object.keys(intervals);
+        var intervalOfValue;
+
+        for(var i=0; i < catKeys.length; i++){
+
+            var interval = intervals[catKeys[i]];
+
+            if(interval.interval.upperBound >= value  && interval.interval.lowerBound <= value){
+                intervalOfValue = interval.interval;
+                break;
+            }
+        }
+
+        return intervalOfValue.lowerBound + " - " + intervalOfValue.upperBound
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._getMACBETHScaleFromSliders = function(){
+        // Iz vrednosti, ki so trenuto v sliderju sestavi MACBETHscale, ki je primeren za ponovni izračun intervalov.
+        // Vrnjeni scale ne sme vsebovati kategorij, ki so bile dodane na panel, niso pa bile uporabljene v MACBETHU!
+        var _self = this;
+
+        var scale = [];
+        var sliders = $('.categorySliders');
+
+        var macbethCategories = Object.keys(_self.criterion.valueFunction.MACBETHDifferenceMatrix);
+        for(var i=0; i < sliders.length; i++){
+            
+            var slider = $(sliders[i]);
+
+            var categoryName = slider.attr('categoryName');
+            if(macbethCategories.indexOf(categoryName) == -1 ){
+                continue;
+            }
+
+            scale.push({
+                name: categoryName,
+                value: slider.jqxSlider('val')
+            });
+        }
+        
+        return scale;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._recalculateIntervals = function(movedCategoryName){
+        // Preračuna intervale, glede na trenutno nastavljene sliderje in jih nastavi.
+        var _self = this;
+
+        if(!_self.criterion.valueFunction.usingMACBETH){
+            return;
+        }
+
+        var categoryName = $(event.currentTarget).attr('categoryName');
+        var scale =_self._getMACBETHScaleFromSliders();
+        var differenceMatrix = _self.criterion.valueFunction.MACBETHDifferenceMatrix;
+
+        var intervals = MacbethIntervalCalculator.calculateIntervalsFor(scale, differenceMatrix, movedCategoryName);
+
+        _self.criterion.valueFunction.MACBETHIntervals = intervals;
+        _self._setValueOfSlidersOnValueOfIntervals(_self.criterion.valueFunction);
+
+        _self._disableAllBoundedSliders();
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._disableAllBoundedSliders = function(){
+        // Metoda onemogoči vse sliderje, katerih interval ima enako vrednosti upper in lower bound-a.
+        var _self = this;
+
+        var sliders = $('.categorySliders');
+        for(var i = 0; i < sliders.length; i++){
+            var slider = $(sliders[i]);
+
+            var catName = slider.attr('categoryName');
+
+            slider.jqxSlider('enable');
+
+            var interval = _self.criterion.valueFunction.MACBETHIntervals[catName];
+            if(typeof(interval) === 'undefined'){
+                continue;
+            }
+
+            if(interval.interval.upperBound == interval.interval.lowerBound){
+                slider.jqxSlider('disable');
+            }
+
+        }
+    }
+
+    FVDialogValueFunctionDiscrete.prototype._categoryIsUsedInMacbeth = function(categoryName, valueFunctionData){
+        // Metoda vrne boolean vrednost, ki pove ali je bila kategorija že uporabljena v MACBETHU.
+        // Kategorija je bila uporabljena v MACBETHU če ima kriterij podatek o njenem intervalu.
+        var _self = this;
+
+        if(!valueFunctionData.usingMACBETH){
+            return false;
+        }
+
+        var macbethCategories = Object.keys(valueFunctionData.MACBETHDifferenceMatrix);
+
+        return macbethCategories.indexOf(categoryName) > -1;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.popupMACBETHDialog = function(){
+        // Funkcija prikaže MACBETH dialog. Ob prikazu se shranijo tudi vse trenutno vnešena kategorije. (zaradi konsistentnosti z MACBETH podatki)
+        var _self = this;
+
+        if(typeof(_self.criterion) == 'undefined'){
+            return;
+        }
+
+        _self._saveDataToCriterion();
+
+        $('#dialogMACBETH').DialogMACBETHH({
+            onClose: function(){
+                _self._setValueOfSlidersOnValueOfIntervals(_self.criterion.valueFunction);
+
+                // Vsem kategorijam, ki so bile neuporabljene v MACBETHU (in so bile obarvane rdeče) sedaj odstran barvo...
+                $('.categorySliderDivUnusedInMacbeth').removeClass('categorySliderDivUnusedInMacbeth');
+
+                _self._disableAllBoundedSliders();
+            }
+        });
+        $('#dialogMACBETH').DialogMACBETHH('open', _self.criterion);
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.getStateOfWindow = function(){
+        // Funkcija vrne stanje okna. (vse trenutne nastavitve za undo/redo).
+        // Funkcija mora vrniti objekt po katerem (z takimi lastnostmi) lahko funkcija setDialogContent nastavi lastnosti okna
+        // Stanje mora biti v obliki stringa.
+        var _self = this;
+
+        // Glede macbetha, so vrednosti (intervalov) direktno povezane s spremembo sliderjev, zato hrani UMR vse valfunction macbeth podatke...
+        var valFunctionSubobject = _self.criterion.valueFunction;        
+        valFunctionSubobject.categories = _self.getCategoriesFromUi();
+
+        var objState = {
+            valueFunction: valFunctionSubobject
+        };
+
+        var strState = JSON.stringify(objState);
+
+        return strState;
+    }
+
+    FVDialogValueFunctionDiscrete.prototype.setStateOfWindow = function(strState){
+        // Funkcija nastavi stanje okna. (vse trenutne nastavitve za undo/redo)
+        var _self = this;
+
+        var objState = JSON.parse(strState);
+
+        _self.resetDialogContent();
+
+        _self.setDialogContent(objState);
+    }
+
+
+    //////////////////////////////////
+    //////      DIALOG WEIGHTS
+    //////////////////////////////////
+
+    function FVDialogWeights(selector){
+
+        var windowOptions = {
+            width: 450,
+            height: 500,
+        };
+
+        FVDialogWindow.call(this, selector, windowOptions);
+
+        this.criterion = {};
+
+        this.URManager = new UMG(this.getStateOfWindow, this.setStateOfWindow, 100, false, this);
+    }
+    FVDialogWeights.prototype = Object.create(FVDialogWindow.prototype);
+    FVDialogWeights.prototype.constructor = FVDialogWeights;
+
+    FVDialogWeights.prototype.initDialogContent = function(){
+        var _self = this;
+
+        $('#btnShowAllWeights').jqxButton({width:95});
+        $('#btnShowAllWeights').on('click', function(){
+
+            _self._saveAndUpdateInput();
+
+            $('#dialogAllWeight').DialogAllWeights('open');
+        });
+
+        $('#btnSaveWeight').jqxButton({width:55});
+        $('#btnSaveWeight').on('click', function(){
+
+           _self._saveAndUpdateInput();
+
+            window.valueTree.URManager.setAsCurrentUMG();
+           _self.close();
+        });
+
+        $('#btnCloseWeight').jqxButton({width:55});
+        $('#btnCloseWeight').on('click', function(){
+            
+            window.valueTree.URManager.setAsCurrentUMG();
+            _self.close();
+        });
+    }
+
+    FVDialogWeights.prototype.resetDialogContent = function(){
+        
+
+        $('#weightsPanelLayoutDiv').html('');
+    }
+
+    FVDialogWeights.prototype.setDialogContent = function(criterion){
+        var _self = this;
+
+        var criteria = _self.getAllCireteriaUnder(criterion);
+        
+        $('#weightsPanel').weightsPanel({
+            panelSource: criteria,
+            URManager: _self.URManager
+        });
+
+        $('#weightsPanel').weightsPanel('refresh');
+    }
+    
+    FVDialogWeights.prototype.open = function(criterion){
+        var _self = this;
+
+        _self.criterion = criterion;
+
+        _self.resetDialogContent();
+
+        _self.setDialogContent(criterion);
+
+        _self.URManager.setAsCurrentUMG();
+        _self.URManager.saveState();
+
+        $(_self.selector).jqxWindow('open');
+    }
+
+    FVDialogWeights.prototype.getAllCireteriaUnder = function(node){
+        // Metoda pridobi vozlišča, ki jih v podanem vozlišču utežujemo. 
+
+        var _self = this;
+
+        if(typeof(node.children) == 'undefined'){
+
+            $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
+                contentText: "Vozlišče ne vsebuje nobenega otroka!",
+                onlyYes: true,
+                yesAction: function(){}
+            })
+
+            throw 'Vozlišče ' + node.name + ' nima otrok!';
+        }
+
+        var panelSource = [];
+        var criteriaForWieghting = node.children;
+        criteriaForWieghting.forEach(function(el, indx){
+            panelSource.push({
+                weightedCriteria: el
+            });
+        });
+
+        return panelSource;
+    }
+    
+    FVDialogWeights.prototype._saveAndUpdateInput = function(){
+        var _self = this;
+
+        // Shrani podatke, ki jih je vnesel uporabnik.
+        $('#weightsPanel').weightsPanel('save');
+
+        // Preračuna normalizirane uteži.
+        // Prvo preračuna na nivoju levela. (Na vozliščih, ki jim je uporabnik nastavljal uteži)
+        // Potem pa končno utež za analizo na celotnem poddreveseu vozlišča.
+        model.normalizeLevelWeightsOnNode(_self.criterion);
+        model.normalizeFinalWeightRecursivelyOnChildrenOf(_self.criterion);
+    }
+
+    FVDialogWeights.prototype.getStateOfWindow = function(){
+        var _self = this;
+
+        var dataFromUi = $('#weightsPanel').weightsPanel('getDataFromUi');
+
+        var children = [];
+        for(var i in dataFromUi){
+            var pnlSrc = dataFromUi[i];
+
+            children.push(pnlSrc.weightedCriteria);
+        }
+
+        var objState = {
+            name: _self.criterion.name,
+            children: children
+        }
+
+        var strState = JSON.stringify(objState);
+        
+        return strState;
+    }
+
+    FVDialogWeights.prototype.setStateOfWindow = function(strState){
+        var _self = this;
+
+        var objState = JSON.parse(strState);
+
+        _self.setDialogContent(objState);
+    }
+
+
+
+    // INICIALIZACIJA POPUP OKEN.
+
+    function InitializeDialogs(){
+        
+        window.dialogCriteriaDetails = new FVDialogCriteriaDetails('#dialogCriteriaDetails');
+                
+        window.dialogNodeDetails = new FVDialogNodeDetails('#dialogNodeDetails');
+
+        window.dialogValFuncPiecewise = new FVDialogValueFunctionPicewise('#dialogValFuncPiecewise');
+
+        window.dialogValFuncLinear = new FVDidalogValueFunctionLinear('#dialogValFuncLinear');
+
+        window.dialogValFuncDiscrete = new FVDialogValueFunctionDiscrete('#dialogValFuncDiscrete');
+
+        window.dialogWeights = new FVDialogWeights('#dialogWeight');
+
+    }
+
+    InitializeDialogs();
+});
 
 
 //////////////////////////////////
@@ -3456,6 +3776,14 @@ function ValueTree(){
 
                         // Shranjevanje podatkov.
                         var macData = $('#MACBETHgrid').MCGrid('getMACBETHDataFromGrid');
+
+                        // Preveri ali je vstavljen katerikoli podatek. (je različen od '-').
+                        var hasDataInserted = _self.checkMacbethDataIfAny(macData);
+
+                        if(hasDataInserted == false){
+                            _self.close();
+                            return;
+                        }
 
                         var macOptions = $('#MACBETHgrid').MCGrid('getCriterionOptions');
                         _self.options.criterion.valueFunction.MACBETHData = macData;
@@ -3662,7 +3990,6 @@ function ValueTree(){
             });
 
             $('#MACBETHgrid').MCGrid('initMCGrid');
-
         },
 
         _regenerateMACBETHData: function(){
@@ -3743,8 +4070,24 @@ function ValueTree(){
             var _self = this;
 
             return _self.options.criterion;
-        }
+        },
 
+        checkMacbethDataIfAny: function(macData){
+            var _self = this;
+            for(var rowName in macData){
+                var row = macData[rowName];
+
+                for(var colName in row){
+                    var val = row[colName];
+
+                    if(val != '-'){
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
     });
 })(jQuery);
 
@@ -5104,14 +5447,13 @@ function MacbethIntervalCalculator(){
 
         if(categoryName == categoryNameValFor){
             return categoryName;
-
         }
 
         return parseFloat(basicScale[categoryNameValFor]).myRound(2);
     }
 
     this.getIntervalsWith = function(categoryName, basicScale){
-        // Pridobi vse intervale v basicScale-u, ki so v povezavi z kategorijo. 
+        // Pridobi vse intervale v basicScale-u, ki so v povezavi s kategorijo. 
         // V nekaterih intervalih je categoryName zgoraj v nekaterih pa spodaj. 
         // basicScale mora biti sortiran po velikosti.
 
@@ -5155,7 +5497,7 @@ function MacbethIntervalCalculator(){
         // Torej: vsi kvadratki v matriki (w,z), ki imajo manjšo vrednost od kvadratka (x,y) -> razlika med vrednosjo razlik basicScale(x) - basicScale(y)
         // mora biti večja od razlike basicScale(w) - basicScale(z)
 
-        // Vrednost -99 je dodeljena praznim celicam (neocenjenim oz. positive...) ... jih preskoči ali
+        // Vrednost -99 je dodeljena praznim celicam (neocenjenim oz. positive...) ... jih preskoči
 
         var _self = this;
 
@@ -5176,6 +5518,8 @@ function MacbethIntervalCalculator(){
                 // Razlika, ki jo je uporabnik dodelil med ti dve kategoriji (številska).
                 var macbethDifference = macbethMatrix[interval.upperElement][interval.lowerElement];
 
+                // Če je razlika enaka -99 je bila neocenjene oz. (positiv). V tem primeru postavi zgolj pogoj el1 = el2,
+                // torej samo ordinalni pogoj: ne sme biti manjši od spodnjega in večji od zgornjega elementa.
                 if(macbethDifference == -99){
 
                     var first = exprStringFor(categoryName, interval.upperElement, basicScaleObject);
@@ -5553,131 +5897,6 @@ function MacbethInconsistencyChecker(){
 }
 
 
-//////////////////////////////////
-//////      DIALOG WEIGHTS
-//////////////////////////////////
-
-(function( $ ){
-
-    $.widget("myWidget.DialogWeights", {
-
-        options: {
-            width: 600,
-            height: 480,
-        },
-
-        criterion: {},
-
-        _create: function(){
-            var _self = this;
-
-            var dialogWeHeight = 500;
-            var dialogWeWidth = 450;
-            $("#dialogWeight").jqxWindow({
-                height: dialogWeHeight,
-                width: dialogWeWidth,
-                resizable: false,
-                isModal: true,
-                autoOpen: false,
-                draggable: true,
-                position: 'center',
-                initContent: function(){
-
-                    $('#btnShowAllWeights').jqxButton({width:95});
-                    $('#btnShowAllWeights').on('click', function(){
-
-                        _self._saveAndUpdateInput();
-
-                        $('#dialogAllWeight').DialogAllWeights('open');
-                    });
-
-                    $('#btnSaveWeight').jqxButton({width:55});
-                    $('#btnSaveWeight').on('click', function(){
-
-                       _self._saveAndUpdateInput();
-
-                        $('#dialogWeight').jqxWindow('close');
-                    });
-
-                    $('#btnCloseWeight').jqxButton({width:55});
-                    $('#btnCloseWeight').on('click', function(){
-                         $('#dialogWeight').jqxWindow('close');
-                    });
-                },
-            });
-        },
-
-        open: function(criterion){
-            var _self = this;
-
-            _self.criterion = criterion;
-
-            _self._refreshDialog();
-
-            $("#dialogWeight").jqxWindow('open');
-        },
-
-        close: function(){
-            // Resetiranje gradnikov.
-     
-            $('#dialogMACBETH').jqxWindow('close');
-        },
-
-        _refreshDialog: function(){
-            var _self = this;
-
-            $('#weightsPanelLayoutDiv').html('');
-            
-            var criteria = _self.getAllCireteriaUnder(_self.criterion);
-            
-
-            $('#weightsPanel').weightsPanel({
-                panelSource: criteria
-            });
-            $('#weightsPanel').weightsPanel('refresh');
-        },
-
-        _saveAndUpdateInput: function(){
-            var _self = this;
-
-            // Shrani podatke, ki jih je vnesel uporabnik.
-            $('#weightsPanel').weightsPanel('save');
-
-            // Preračuna normalizirane uteži.
-            // Prvo preračuna na nivoju levela. (Na vozliščih, ki jim je uporabnik nastavljal uteži)
-            // Potem pa končno utež za analizo na celotnem poddreveseu vozlišča.
-            model.normalizeLevelWeightsOnNode(_self.criterion);
-            model.normalizeFinalWeightRecursivelyOnChildrenOf(_self.criterion);
-        },
-
-        getAllCireteriaUnder: function(node){
-            // Metoda pridobi vozlišča, ki jih v podanem vozlišču utežujemo. 
-
-            var _self = this;
-
-            if(typeof(node.children) == 'undefined'){
-
-                $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
-                    contentText: "Vozlišče ne vsebuje nobenega otroka!",
-                    onlyYes: true,
-                    yesAction: function(){}
-                })
-
-                throw 'Vozlišče ' + node.name + ' nima otrok!';
-            }
-
-            var panelSource = [];
-            var criteriaForWieghting = _self.criterion.children;
-            criteriaForWieghting.forEach(function(el, indx){
-                panelSource.push({
-                    weightedCriteria: el
-                });
-            });
-            return panelSource;
-        },
-    });
-})(jQuery);
-
 
 //////////////////////////////////
 //////    WEIGHTS PANEL
@@ -5688,7 +5907,8 @@ function MacbethInconsistencyChecker(){
     $.widget('myWidget.weightsPanel', {
 
         options: {
-            panelSource: []
+            panelSource: [],
+            URManager: {}
         },
 
         _create: function(){
@@ -5703,6 +5923,8 @@ function MacbethInconsistencyChecker(){
         },
 
         refresh: function(){
+            var _self = this;
+
             $('#weightsPanelLayoutDiv').html('');
 
             for(var i = 0; i < this.options.panelSource.length; i++){
@@ -5752,6 +5974,8 @@ function MacbethInconsistencyChecker(){
 
                 slider.jqxSlider('setValue', insertedValue);
                 $(event.target).val(insertedValue);
+
+                _self.options.URManager.saveState();
             });
 
             // Nastavitev in pridobitev končne širine dodanih panelov za nastaljanje uteži.
@@ -5799,6 +6023,10 @@ function MacbethInconsistencyChecker(){
                 var val = parseInt(event.args.value)
                 textDiv.val(val);
             });
+
+            $('.weightSlider').on('slideEnd', function(e, ee, eee, eeee){
+                _self.options.URManager.saveState();
+            });
         },
 
         _abbreviateForName: function(str){
@@ -5818,6 +6046,34 @@ function MacbethInconsistencyChecker(){
             }
         },
 
+        getDataFromUi: function(){
+
+            var dataSourceFromUi = [];
+
+            var sliders = $('#weightsPanel .weightSlider');
+
+            for(var i = 0; i < sliders.length; i++){
+                var slider = $(sliders[i]);
+
+                var valueOfSlider = slider.jqxSlider('value');
+                var nameOfWeightedCategory = slider.closest('.weightsPanelContent').find('.weightedNodeText').text();
+
+                dataSourceFromUi.push({
+                    weightedCriteria: {
+                        name: nameOfWeightedCategory,
+                        userWeight: parseInt(valueOfSlider)
+                    }
+                });
+            }
+
+            return dataSourceFromUi;
+        },
+
+        _weightChangeEvent: function(){
+            var _self = this;
+
+            _self.options.onWeightChange();
+        }
     });
 })(jQuery);
 
@@ -5955,10 +6211,20 @@ function MacbethInconsistencyChecker(){
                 cellsrenderer: cellsCenterRenderer
             });
 
-
             // GENERIRANJE DATA ADAPTERJA.
-            model.refreshMinMaxValueOFAllRelativeCriteria();
+            try{
+                model.refreshMinMaxValueOFAllRelativeCriteria();
+            }
+            catch(ex){
+                
+                $('#dialogYesNoMessage').messageYesNoDialog('openWith', {
+                    height: 180,
+                    contentText: "Napaka pri vnešenih podatkih. Preverite pravilnost podatkov variant.",
+                    onlyYes: true
+                });                
 
+            }
+            
             var datFields = [ {name: 'name', type: 'string'}, {name:'finalNormalizedWeight', type:'string'}, {name:'levelNormalizedWeight', type:'string'},
             , {name:'minValue', type:'string'}, {name:'maxValue', type:'string'}, {name:'scaleType', type:'string'}];
 
@@ -5972,7 +6238,7 @@ function MacbethInconsistencyChecker(){
                     var maxVal = node.maxValue;
 
                     // Diskratnim kriterijem namesto vrednosti 0 in 100 do najboljšo in najslabšo vrednost.
-                    if(node.scaleType == 'fixed' && node.valFuncType == 'discrete' && typeof(node.valueFunction) != 'undefined'){
+                    if(node.scaleType == 'fixed' && typeof(node.valueFunction) != 'undefined' && node.valFuncType == 'discrete'){
 
                         var categories = node.valueFunction.categories;
                         if(typeof(categories) != 'undefined'){
@@ -5993,6 +6259,29 @@ function MacbethInconsistencyChecker(){
                                 }
                             }
                         }
+                    }
+                    // Linearno odsekovnim funkcijam določi prvo max  vrednost in prvo najmanjšo (prvo, če se kasneje ponovi...)
+                    else if(typeof(node.valueFunction) != 'undefined' && node.valFuncType == 'piecewise' && typeof(node.valueFunction.points) != 'undefined'){
+
+                        var minPiecewise = 1000;
+                        var maxPiecewise = -100;
+                        for(var indx in node.valueFunction.points){
+                            var point = node.valueFunction.points[indx];
+                            if(point.y > maxPiecewise){
+                                maxPiecewise = point.y;
+                                maxVal = point.x;
+                            }
+                            if(point.y < minPiecewise){
+                                minPiecewise = point.y;
+                                minVal = point.x;
+                            }
+                        }
+                    }
+                    // Linearnim obratnim funkcijam morar min in max obrniti.
+                    else if(typeof(node.valueFunction) != 'undefined' && node.valFuncType == 'linear' && node.inverseScale == 'true'){
+                        var tempMin = minVal;
+                        minVal = maxVal;
+                        maxVal = tempMin;
                     }
 
                     allWeightsGridData.push({

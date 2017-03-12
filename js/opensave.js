@@ -571,6 +571,7 @@ function Model(){
     this.addVariant = function(variant){
         // Varianti dodeli id, doda varianto in poviša generatoi id-jev za 1.
         variant['vid'] = this._varIDGen;
+
         this._variants[this._varIDGen] = variant;
         this._varIDGen++;
     }
@@ -743,8 +744,6 @@ function Model(){
             fileReader.onload = function(e){
                 _self.updateModel(e.target.result);
                 $('#tabsContent').jqxTabs('select', 0);
-                // UMTree.reset();
-                UMModel.reset();
             };
             
             fileReader.readAsText(this.files[0]);
@@ -1002,30 +1001,43 @@ function Model(){
 
 /* 
 * UMG je prototip undo manager, ki se uporablja za undo funkcionalnost aplikacije. Kadar želimo kje v aplikaciji shraniti stanje za UNDO/REDO
-* moramo na mesto v kodi klicati funkcijo saveState(). Prednastavljena vrednost omogoča hranjenje zadnjih 10-ih stanj.
+* moramo na mesto v kodi klicati funkcijo saveState(). Prednastavljena vrednost omogoča hranjenje zadnjih 100-ih stanj.
 *
 *@param {function} getMementoMethod je metoda, ki se kliče ob potrebi shranjevanja stanja. Stanja, ki jih vrne ta metoda, se bojo shranjevala in obnavljala.
 *@param {function} updateMethod je metoda, ki naredi update stanja. Metodi je podano shranjeno stanje za obnovo. Stanje je to kar vrača metoda getMementoMethod.
 *@param {int} maxStates Število stanj, ki se bojo hranila za UNDO funkcionalnost.
 */
-function UMG(getMementoMethod, updateMethod, maxStates){
+function UMG(getMementoMethod, updateMethod, maxStates, savingBeforeAction, callMethodsAs){
     this.getWholeDataModel = getMementoMethod;
     this.updateModel = updateMethod;
     
+    this.callMethodsAs = callMethodsAs;
+
     this.undoStack = [];
     this.redoStack = [];
     
-    this.maxStates = maxStates === 'undefined' ? 10 : maxStates;
+    this.maxStates = maxStates === 'undefined' ? 100 : maxStates;
+
+    this.savingBeforeAction = typeof(savingBeforeAction) === 'undefined' ? true : savingBeforeAction;
 
     // Spremenljivka pauseSaving je namenjena, kadar je manager na pavzi in ne shranjuje akcij (Npr.: kadar se nalagajo variante iz excela, 
     // da ne shranjuje stanja za vsako posamezno dodano varianto ga damo na pavzo po vseh dodanih pa pavzo odstavimo... ).
     this.pauseSaving = false;
 
+    this.changesDone = false;
+
     this._getCurrentState = function(){
 
+        var strModel;
+        if(typeof(this.callMethodsAs) === 'undefined'){
+            strModel = this.getWholeDataModel();
+        }
+        else{
+            strModel = this.getWholeDataModel.call(this.callMethodsAs);
+        }
+
         var state = {
-            actionTab: $('#tabsContent').jqxTabs('val'),
-            model: this.getWholeDataModel()
+            model: strModel
         };
 
         return state;
@@ -1036,11 +1048,14 @@ function UMG(getMementoMethod, updateMethod, maxStates){
     */
     this.saveState = function(){
 
+        this.changesDone = true;
+
         if(this.pauseSaving){
             return;
         }
-        var state = this._getCurrentState();
 
+        var state = this._getCurrentState();   
+        
         this.undoStack.push(state);
         if(this.undoStack.length > this.maxStates){
             this.undoStack.splice(0, 1);
@@ -1054,74 +1069,121 @@ function UMG(getMementoMethod, updateMethod, maxStates){
     
     this.UNDO = function(){
 
-        if(this.undoStack.length > 0)
-        {
-            var currentTabId = $('#tabsContent').jqxTabs('val');
-            var undoStateTabId = this.undoStack[this.undoStack.length-1].actionTab;
-
-            if(currentTabId == undoStateTabId){
-                var state = this._getCurrentState();
-                this.redoStack.push(state);
-
-                var memento = this.undoStack.pop();
-                this.updateModel(memento.model);
-            }
+        if(this.savingBeforeAction == true){
+            this.undoSavingStateBeforeAction();
+        }
+        else{
+            this.undoSavingStateAfterAction();   
         }
     }
     
+    this.undoSavingStateBeforeAction = function(){
+
+        if(this.undoStack.length > 0)
+        {
+            var state = this._getCurrentState();
+            this.redoStack.push(state);
+
+            var memento = this.undoStack.pop();
+
+            if(typeof(this.callMethodsAs) === 'undefined'){
+                this.updateModel(memento.model);   
+            }
+            else{
+                this.updateModel.call(this.callMethodsAs, memento.model);  
+            }
+        }
+    }
+
+    this.undoSavingStateAfterAction = function(){
+
+        if(this.undoStack.length > 1)
+        {
+            // V tem primeru je trenutno stanje zmeraj na vrhu undu sklada.
+            var currentState = this.undoStack.pop();
+            this.redoStack.push(currentState);
+
+            var memento = this.undoStack.pop();
+
+            // Trenutno stanje porine nazaj, ker mora biti zmeraj na vrhu undo sklada.
+            this.undoStack.push(memento);
+
+            if(typeof(this.callMethodsAs) === 'undefined'){
+                this.updateModel(memento.model);   
+            }
+            else{
+                this.updateModel.call(this.callMethodsAs, memento.model);  
+            }
+        }
+    }
+
     this.REDO = function(){
+
+        if(this.savingBeforeAction == true){
+            this.redoSavingStateBeforeAction();
+        }
+        else{
+            this.redoSavingAfterBeforeAction();   
+        }
+    }
+    
+    this.redoSavingStateBeforeAction = function(){
+        
+        if(this.redoStack.length > 0){
+
+            var state = this._getCurrentState();
+            this.undoStack.push(state)
+
+            var memento = this.redoStack.pop();
+            
+            if(typeof(this.callMethodsAs) === 'undefined'){
+                this.updateModel(memento.model);   
+            }
+            else{
+                this.updateModel.call(this.callMethodsAs, memento.model);  
+            }
+        }
+    }
+
+    this.redoSavingAfterBeforeAction = function(){
 
         if(this.redoStack.length > 0){
 
-            var currentTabId = $('#tabsContent').jqxTabs('val');
-            var redoStateTabId = this.redoStack[this.redoStack.length-1].actionTab;
+            // Tudi tukaj vzdržujemo lastnost, da je trenutno stanje na vrhu undo sklada.
+            var memento = this.redoStack.pop();
+            this.undoStack.push(memento);
 
-            if(currentTabId == redoStateTabId){
-                var state = this._getCurrentState();
-                this.undoStack.push(state)
-
-                var memento = this.redoStack.pop();
-                this.updateModel(memento.model);
+            if(typeof(this.callMethodsAs) === 'undefined'){
+                this.updateModel(memento.model);   
             }
-        }   
+            else{
+                this.updateModel.call(this.callMethodsAs, memento.model);  
+            }
+        }
     }
-    
+
     /*
-    * Metodo pokličemo kadar želimo resetirati vsa stanja modela, ki se nahajajo v stackih. (npr. ob odprtju obstoječega modela, ali ob kreiranju novega modela)...
+    * Metodo pokličemo kadar želimo resetirati vsa stanja modela, ki se nahajajo v stackih. (npr. ob odprtju obstoječega modela, ali ob kreiranju novega modela, prehodu med tabi..)...
     */
     this.reset = function(){
 
         this.undoStack = [];
         this.redoStack = [];
-        this.maxStates = 10;
+        this.maxStates = 100;
+    }
 
+    this.setAsCurrentUMG = function(resetCurrent){
+
+        var resetCurrent = typeof(resetCurrent) === 'undefined' ? true : resetCurrent;
+
+        if(resetCurrent != false && (typeof(window.currentUMG) != 'undefined' && window.currentUMG != null)){
+            window.currentUMG.reset();
+        }
+
+        window.currentUMG = this;
     }
 }
 
-//////////////////////////////////
-//////      POMOŽNE METODE
-//////////////////////////////////
-
-function getWholeDataModel(){
-
-    return window.model.getModelString();
-}
-
-function updateModel(model){
-
-    var durationOld = window.valueTree.translationDuration;                            
-
-    window.valueTree.translationDuration = 0;
-    window.model.updateModel(model);
-    window.valueTree.recalcData(window.model.getAllNodes());
-    window.valueTree.translationDuration = durationOld;
-
-}
-
-var UMModel = new UMG(getWholeDataModel, updateModel, 50);
-
-
-// var UMTree = new UMG(getWholeDataModel, updateModel);
-// var UMVariants = new UMG(getVariantsDataModel, updateVariants);
-
+//MR: 1.3.2017
+// resetiraj tudi tiste ob zapiranju oken...
 
